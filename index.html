@@ -19,17 +19,19 @@ input,select{width:100%;border:1px solid #ccc;border-radius:10px;padding:11px;fo
 .box{background:#fff;border-radius:15px;padding:14px;margin-bottom:12px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px solid #eee;text-align:right}th:first-child,td:first-child{text-align:left}.danger{background:#fee;color:#a00}.danger:disabled{opacity:.4}.light{background:#eee}
 @media(max-width:800px){.register{grid-template-columns:1fr}.products{grid-template-columns:repeat(3,1fr)}.cart{position:static;max-height:none}}
 </style></head><body>
-<header><h1>コミケ現金レジ</h1><span>試作イベント</span></header>
+<header><h1>コミケ現金レジ</h1><span id="eventTitle"></span></header>
 <nav class="tabs"><button id="tr" class="on" onclick="show('r')">🧾 会計</button><button id="tp" onclick="show('p')">📦 商品管理</button><button id="ts" onclick="show('s')">📊 売上</button><button id="tc" onclick="show('c')">💴 レジ精算</button></nav>
 <main id="app"></main>
 <script>
 const KEY='comike-register-v2-data';
-let db=JSON.parse(localStorage.getItem(KEY)||'null')||{people:['Aさん','Bさん','Cさん'],sales:[],opening:null,final:null,products:[
+let db=JSON.parse(localStorage.getItem(KEY)||'null')||{eventName:'試作イベント',people:['Aさん','Bさん','Cさん'],sales:[],opening:null,final:null,products:[
 {id:1,name:'新刊',price:1000,stock:100,initial:100,person:'Aさん',cat:'本',img:''},{id:2,name:'アクスタ',price:1500,stock:50,initial:50,person:'Bさん',cat:'グッズ',img:''},{id:3,name:'缶バッジ',price:500,stock:100,initial:100,person:'Cさん',cat:'グッズ',img:''},{id:4,name:'セット',price:3000,stock:30,initial:30,person:'Bさん',cat:'セット',img:''}]};
+if(!db.eventName) db.eventName='試作イベント';
 let cart=[]; const den=[10000,5000,1000,500,100,50,10,5,1];
 const save=()=>localStorage.setItem(KEY,JSON.stringify(db)), yen=n=>'¥'+Number(n||0).toLocaleString('ja-JP');
 const sales=()=>db.sales.reduce((a,x)=>a+x.total,0), units=()=>db.sales.flatMap(x=>x.items).reduce((a,x)=>a+x.qty,0);
-function show(x){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('on'));document.getElementById('t'+x).classList.add('on');({r:reg,p:products,s:report,c:cash})[x]()}
+function renderEventTitle(){const el=document.getElementById('eventTitle');if(el)el.textContent=db.eventName||'試作イベント'}
+function show(x){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('on'));document.getElementById('t'+x).classList.add('on');renderEventTitle();({r:reg,p:products,s:report,c:cash})[x]()}
 function reg(){let t=cart.reduce((a,x)=>a+x.price*x.qty,0);app.innerHTML=`<div class="stats"><div class="card"><div class="label">本日の売上</div><div class="big">${yen(sales())}</div></div><div class="card"><div class="label">会計件数</div><div class="big">${db.sales.length}件</div></div><div class="card"><div class="label">販売数</div><div class="big">${units()}個</div></div></div><div class="register"><div class="products">${db.products.map(p=>`<button class="product" onclick="add(${p.id})">${p.img?`<img src="${p.img}">`:`<div class="ph">📦</div>`}<div class="pbody"><b>${p.name}</b>${yen(p.price)}<div class="stock">残り ${p.stock}</div></div></button>`).join('')}</div><div class="panel cart"><h3>今回のお会計</h3>${cart.length?cart.map((x,i)=>`<div class="row"><span>${x.name} × ${x.qty}</span><span>${yen(x.price*x.qty)} <button class="btn light" onclick="minus(${i})">−</button></span></div>`).join(''):'<div class="label">商品をタップしてください</div>'}<div class="row"><b>合計</b><b class="amount">${yen(t)}</b></div><input id="recv" inputmode="numeric" type="number" placeholder="お預かり金額" oninput="chg()"><div class="quick"><button class="btn" onclick="exact()">ちょうど</button><button class="btn" onclick="qp(1000)">¥1,000</button><button class="btn" onclick="qp(5000)">¥5,000</button><button class="btn" onclick="qp(10000)">¥10,000</button></div><div id="change" class="change">お釣り ¥0</div><button class="btn primary checkout" onclick="checkout()">会計確定</button></div></div>`}
 function add(id){let p=db.products.find(x=>x.id===id);if(p.stock<=0)return alert('在庫切れです');let x=cart.find(x=>x.id===id);if(x){if(x.qty>=p.stock)return alert('在庫数を超えています');x.qty++}else cart.push({...p,qty:1});reg()}
 function minus(i){if(--cart[i].qty<=0)cart.splice(i,1);reg()} function total(){return cart.reduce((a,x)=>a+x.price*x.qty,0)}
@@ -38,6 +40,11 @@ function checkout(){if(!cart.length)return alert('商品を選択してくださ
 function products(){app.innerHTML=`<div class="box"><h3>商品登録</h3><div class="grid3"><div>商品名<input id="pn"></div><div>価格<input id="pp" type="number"></div><div>初期在庫<input id="pst" type="number"></div><div>担当者<select id="pe">${db.people.map(x=>`<option>${x}</option>`).join('')}</select></div><div>カテゴリ<input id="pc"></div><div>商品画像<input id="pi" type="file" accept="image/*"></div></div><br><button class="btn primary" onclick="newp()">登録</button></div>
 <div class="box"><h3>登録商品</h3>${db.products.map(p=>`<div class="row"><span><b>${p.name}</b> / ${yen(p.price)} / ${p.person} / ${p.cat} / 残${p.stock}</span><span style="display:flex;gap:6px"><button class="btn light" onclick="openProductEditor(${p.id})">編集</button><button class="btn danger" onclick="deleteProduct(${p.id})">削除</button></span></div>`).join('')}</div>
 <div id="productEditor"></div>
+<div class="box"><h3>イベント設定</h3><p class="label">画面右上に表示するイベント名を変更できます。</p>
+<div style="max-width:520px">
+  <div>イベント名<input id="eventNameInput" value="${escapeHtml(db.eventName||'試作イベント')}"></div>
+</div>
+<br><button class="btn primary" onclick="saveEventName()">イベント名を保存</button></div>
 <div class="box"><h3>担当者設定</h3><p class="label">担当者名を変更すると、商品登録・商品編集・売上集計にも反映されます。</p>
 <div class="grid3">
   <div>担当者1<input id="person1" value="${escapeHtml(db.people[0]||'Aさん')}"></div>
@@ -51,6 +58,17 @@ function products(){app.innerHTML=`<div class="box"><h3>商品登録</h3><div cl
 <label class="btn light" style="display:inline-block;cursor:pointer">バックアップから復元<input id="restoreFile" type="file" accept=".json,application/json" style="display:none" onchange="restoreData(event)"></label>
 </div></div>`}
 
+
+
+function saveEventName(){
+  const v = document.getElementById('eventNameInput').value.trim();
+  if(!v) return alert('イベント名を入力してください');
+  db.eventName = v;
+  save();
+  renderEventTitle();
+  alert('イベント名を変更しました');
+  products();
+}
 
 function savePeople(){
   const oldPeople = [...db.people];
@@ -230,5 +248,5 @@ function report(){let ppl=db.people.map(p=>{let a=db.sales.flatMap(s=>s.items).f
 const ct=o=>Object.entries(o||{}).reduce((s,[d,n])=>s+Number(d)*Number(n),0);
 function cash(){let o=ct(db.opening),a=ct(db.final),e=o+sales();app.innerHTML=`<div class="box"><h3>開始レジ金</h3>${den.map(d=>`<div class="row"><span>${yen(d)}</span><input style="width:110px" id="o${d}" type="number" value="${db.opening?.[d]||0}"><span>枚</span></div>`).join('')}<div class="row"><b>合計</b><b>${yen(o)}</b></div><button class="btn primary" onclick="openSave()">保存</button></div><div class="box"><h3>終了レジ精算</h3>${den.map(d=>`<div class="row"><span>${yen(d)}</span><input style="width:110px" id="f${d}" type="number" value="${db.final?.[d]||0}"><span>枚</span></div>`).join('')}<div class="row"><b>理論残高</b><b>${yen(e)}</b></div><div class="row"><b>実残高</b><b>${yen(a)}</b></div><div class="row"><b>過不足</b><b>${yen(a-e)}</b></div><button class="btn primary" onclick="finalSave()">精算保存</button></div>`}
 function openSave(){db.opening={};den.forEach(d=>db.opening[d]=Number(document.getElementById('o'+d).value)||0);save();cash()}function finalSave(){db.final={};den.forEach(d=>db.final[d]=Number(document.getElementById('f'+d).value)||0);save();cash()}
-if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js'); reg();
+if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js'); renderEventTitle(); reg();
 </script></body></html>
