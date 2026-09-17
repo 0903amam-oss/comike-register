@@ -38,11 +38,45 @@ function checkout(){if(!cart.length)return alert('商品を選択してくださ
 function products(){app.innerHTML=`<div class="box"><h3>商品登録</h3><div class="grid3"><div>商品名<input id="pn"></div><div>価格<input id="pp" type="number"></div><div>初期在庫<input id="pst" type="number"></div><div>担当者<select id="pe">${db.people.map(x=>`<option>${x}</option>`).join('')}</select></div><div>カテゴリ<input id="pc"></div><div>商品画像<input id="pi" type="file" accept="image/*"></div></div><br><button class="btn primary" onclick="newp()">登録</button></div>
 <div class="box"><h3>登録商品</h3>${db.products.map(p=>`<div class="row"><span><b>${p.name}</b> / ${yen(p.price)} / ${p.person} / ${p.cat} / 残${p.stock}</span><span style="display:flex;gap:6px"><button class="btn light" onclick="openProductEditor(${p.id})">編集</button><button class="btn danger" onclick="deleteProduct(${p.id})">削除</button></span></div>`).join('')}</div>
 <div id="productEditor"></div>
+<div class="box"><h3>担当者設定</h3><p class="label">担当者名を変更すると、商品登録・商品編集・売上集計にも反映されます。</p>
+<div class="grid3">
+  <div>担当者1<input id="person1" value="${escapeHtml(db.people[0]||'Aさん')}"></div>
+  <div>担当者2<input id="person2" value="${escapeHtml(db.people[1]||'Bさん')}"></div>
+  <div>担当者3<input id="person3" value="${escapeHtml(db.people[2]||'Cさん')}"></div>
+</div>
+<br><button class="btn primary" onclick="savePeople()">担当者名を保存</button></div>
 <div class="box"><h3>バックアップ / 復元</h3><p class="label">商品・在庫・売上・レジ金をまとめて保存できます。本番前や終了後にバックアップ推奨。</p>
 <div style="display:flex;gap:8px;flex-wrap:wrap">
 <button class="btn primary" onclick="backupData()">バックアップ保存</button>
 <label class="btn light" style="display:inline-block;cursor:pointer">バックアップから復元<input id="restoreFile" type="file" accept=".json,application/json" style="display:none" onchange="restoreData(event)"></label>
 </div></div>`}
+
+
+function savePeople(){
+  const oldPeople = [...db.people];
+  const next = [
+    document.getElementById('person1').value.trim() || oldPeople[0] || 'Aさん',
+    document.getElementById('person2').value.trim() || oldPeople[1] || 'Bさん',
+    document.getElementById('person3').value.trim() || oldPeople[2] || 'Cさん'
+  ];
+
+  db.products.forEach(p=>{
+    const idx = oldPeople.indexOf(p.person);
+    if(idx >= 0) p.person = next[idx];
+  });
+
+  db.sales.forEach(s=>{
+    s.items.forEach(i=>{
+      const idx = oldPeople.indexOf(i.person);
+      if(idx >= 0) i.person = next[idx];
+    });
+  });
+
+  db.people = next;
+  save();
+  alert('担当者名を変更しました');
+  products();
+}
 
 function backupData(){
   const payload = {
