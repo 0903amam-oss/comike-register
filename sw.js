@@ -1,11 +1,9 @@
-const CACHE = "comike-register-v3";
+const CACHE = "comike-register-v4";
 const ASSETS = ["./", "./index.html", "./manifest.json"];
 
 self.addEventListener("install", event => {
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll(ASSETS))
-  );
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
 });
 
 self.addEventListener("activate", event => {
@@ -19,7 +17,6 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
   const req = event.request;
 
-  // HTML navigation: prefer newest network copy, fall back to offline cache.
   if (req.mode === "navigate") {
     event.respondWith(
       fetch(req)
@@ -37,7 +34,6 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // Other static files: cache first, then network and save.
   event.respondWith(
     caches.open(CACHE).then(cache =>
       cache.match(req).then(cached =>
