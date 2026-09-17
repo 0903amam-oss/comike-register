@@ -27,6 +27,7 @@ const KEY='comike-register-v2-data';
 let db=JSON.parse(localStorage.getItem(KEY)||'null')||{eventName:'試作イベント',people:['Aさん','Bさん','Cさん'],sales:[],opening:null,final:null,products:[
 {id:1,name:'新刊',price:1000,stock:100,initial:100,person:'Aさん',cat:'本',img:''},{id:2,name:'アクスタ',price:1500,stock:50,initial:50,person:'Bさん',cat:'グッズ',img:''},{id:3,name:'缶バッジ',price:500,stock:100,initial:100,person:'Cさん',cat:'グッズ',img:''},{id:4,name:'セット',price:3000,stock:30,initial:30,person:'Bさん',cat:'セット',img:''}]};
 if(!db.eventName) db.eventName='試作イベント';
+db.products.forEach(p=>{if(p.initial==null) p.initial=Number(p.stock)||0});
 let cart=[]; const den=[10000,5000,1000,500,100,50,10,5,1];
 const save=()=>localStorage.setItem(KEY,JSON.stringify(db)), yen=n=>'¥'+Number(n||0).toLocaleString('ja-JP');
 
@@ -56,7 +57,7 @@ function products(){app.innerHTML=`<div class="box"><h3>商品登録</h3><div cl
 <div class="box" id="registeredProducts"><h3>登録商品</h3><p class="label">↑↓で会計画面の商品表示順を変更できます。</p>${db.products.map((p,idx)=>`
 <div class="product-admin-item">
   <div class="product-admin-thumb">${p.img?`<img src="${p.img}" alt="">`:'📦'}</div>
-  <div class="product-admin-main"><b>${p.name}</b> / ${yen(p.price)} / ${p.person} / ${p.cat} / 残${p.stock}</div>
+  <div class="product-admin-main"><b>${p.name}</b> / ${yen(p.price)} / ${p.person} / ${p.cat} / 残${p.stock} / 初期${p.initial ?? p.stock}</div>
   <div class="product-admin-actions">
     <button class="btn light" onclick="moveProduct(${p.id},-1)" ${idx===0?'disabled':''}>↑</button>
     <button class="btn light" onclick="moveProduct(${p.id},1)" ${idx===db.products.length-1?'disabled':''}>↓</button>
@@ -226,11 +227,13 @@ function openProductEditor(id){
       <div class="grid3">
         <div>商品名<input id="en" value="${escapeHtml(p.name)}"></div>
         <div>価格<input id="ep" type="number" value="${p.price}"></div>
+        <div>初期在庫<input id="einit" type="number" value="${p.initial ?? p.stock}"></div>
         <div>現在庫<input id="es" type="number" value="${p.stock}"></div>
         <div>担当者<select id="eper">${db.people.map(x=>`<option ${x===p.person?'selected':''}>${escapeHtml(x)}</option>`).join('')}</select></div>
         <div>カテゴリ<input id="ec" value="${escapeHtml(p.cat||'')}"></div>
         <div>商品画像<input id="ei" type="file" accept="image/*"></div>
       </div>
+      <p class="label" style="margin-top:10px">初期在庫＝本番開始時の在庫数です。「本番開始用にリセット」を押すと現在庫がこの数に戻ります。</p>
       <div style="display:flex;gap:8px;align-items:center;margin-top:12px">
         ${p.img?`<img src="${p.img}" style="width:90px;height:90px;object-fit:cover;border-radius:10px;border:1px solid #ddd">`:`<div class="ph" style="width:90px;height:90px;border-radius:10px">📦</div>`}
         <div class="label">画像を選ばなければ現在の画像をそのまま使います。</div>
@@ -251,6 +254,7 @@ function saveProductEdit(id){
   if(!p) return;
   const name = document.getElementById('en').value.trim();
   const price = Number(document.getElementById('ep').value);
+  const initial = Number(document.getElementById('einit').value);
   const stock = Number(document.getElementById('es').value);
   const person = document.getElementById('eper').value;
   const cat = document.getElementById('ec').value.trim() || 'その他';
@@ -258,12 +262,14 @@ function saveProductEdit(id){
 
   if(!name) return alert('商品名を入力してください');
   if(!Number.isFinite(price) || price < 0) return alert('価格を正しく入力してください');
-  if(!Number.isFinite(stock) || stock < 0) return alert('在庫数を正しく入力してください');
+  if(!Number.isFinite(initial) || initial < 0) return alert('初期在庫を正しく入力してください');
+  if(!Number.isFinite(stock) || stock < 0) return alert('現在庫を正しく入力してください');
 
   const apply = img=>{
     const before = {...p};
     p.name=name;
     p.price=price;
+    p.initial=initial;
     p.stock=stock;
     p.person=person;
     p.cat=cat;
