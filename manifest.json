@@ -1,1 +1,23 @@
-{"name": "コミケ現金レジ", "short_name": "コミケレジ", "start_url": "./index.html", "display": "standalone", "background_color": "#f5f6f8", "theme_color": "#ffffff"}
+{
+  "name": "イベントレジ",
+  "short_name": "イベントレジ",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f5f6f8",
+  "theme_color": "#ffffff",
+  "description": "イベント向けオフライン現金レジ",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
