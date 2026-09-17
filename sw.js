@@ -1,4 +1,4 @@
-const CACHE = "comike-register-v4";
+const CACHE = "comike-register-v5";
 const ASSETS = ["./", "./index.html", "./manifest.json"];
 
 self.addEventListener("install", event => {
@@ -16,24 +16,20 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
   const req = event.request;
-
   if (req.mode === "navigate") {
     event.respondWith(
-      fetch(req)
-        .then(res => {
-          const copy = res.clone();
-          caches.open(CACHE).then(cache => cache.put("./index.html", copy));
-          return res;
-        })
-        .catch(() =>
-          caches.open(CACHE).then(cache =>
-            cache.match("./index.html").then(r => r || cache.match("./"))
-          )
+      fetch(req).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(cache => cache.put("./index.html", copy));
+        return res;
+      }).catch(() =>
+        caches.open(CACHE).then(cache =>
+          cache.match("./index.html").then(r => r || cache.match("./"))
         )
+      )
     );
     return;
   }
-
   event.respondWith(
     caches.open(CACHE).then(cache =>
       cache.match(req).then(cached =>

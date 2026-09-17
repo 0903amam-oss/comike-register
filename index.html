@@ -35,7 +35,57 @@ function add(id){let p=db.products.find(x=>x.id===id);if(p.stock<=0)return alert
 function minus(i){if(--cart[i].qty<=0)cart.splice(i,1);reg()} function total(){return cart.reduce((a,x)=>a+x.price*x.qty,0)}
 function chg(){change.textContent='お釣り '+yen(Math.max(0,(Number(recv.value)||0)-total()))} function qp(v){recv.value=v;chg()} function exact(){recv.value=total();chg()}
 function checkout(){if(!cart.length)return alert('商品を選択してください');let t=total(),r=Number(recv.value)||0;if(r<t)return alert('お預かり金額が不足しています');db.products.forEach(p=>{let x=cart.find(c=>c.id===p.id);if(x)p.stock-=x.qty});db.sales.push({id:Date.now(),time:new Date().toLocaleString('ja-JP'),total:t,received:r,change:r-t,items:cart.map(x=>({name:x.name,price:x.price,qty:x.qty,person:x.person,cat:x.cat}))});save();cart=[];alert('お釣り '+yen(r-t));reg()}
-function products(){app.innerHTML=`<div class="box"><h3>商品登録</h3><div class="grid3"><div>商品名<input id="pn"></div><div>価格<input id="pp" type="number"></div><div>初期在庫<input id="pst" type="number"></div><div>担当者<select id="pe">${db.people.map(x=>`<option>${x}</option>`).join('')}</select></div><div>カテゴリ<input id="pc"></div><div>商品画像<input id="pi" type="file" accept="image/*"></div></div><br><button class="btn primary" onclick="newp()">登録</button></div><div class="box">${db.products.map(p=>`<div class="row"><span>${p.name} / ${yen(p.price)} / ${p.person} / 残${p.stock}</span></div>`).join('')}</div>`}
+function products(){app.innerHTML=`<div class="box"><h3>商品登録</h3><div class="grid3"><div>商品名<input id="pn"></div><div>価格<input id="pp" type="number"></div><div>初期在庫<input id="pst" type="number"></div><div>担当者<select id="pe">${db.people.map(x=>`<option>${x}</option>`).join('')}</select></div><div>カテゴリ<input id="pc"></div><div>商品画像<input id="pi" type="file" accept="image/*"></div></div><br><button class="btn primary" onclick="newp()">登録</button></div><div class="box">${db.products.map(p=>`<div class="row"><span>${p.name} / ${yen(p.price)} / ${p.person} / 残${p.stock}</span></div>`).join('')}</div>
+<div class="box"><h3>バックアップ / 復元</h3><p class="label">商品・在庫・売上・レジ金をまとめて保存できます。本番前や終了後にバックアップ推奨。</p>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<button class="btn primary" onclick="backupData()">バックアップ保存</button>
+<label class="btn light" style="display:inline-block;cursor:pointer">バックアップから復元<input id="restoreFile" type="file" accept=".json,application/json" style="display:none" onchange="restoreData(event)"></label>
+</div></div>`}
+
+function backupData(){
+  const payload = {
+    app:"コミケ現金レジ",
+    version:1,
+    exportedAt:new Date().toISOString(),
+    data:db
+  };
+  const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  const d = new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const name = `comike-register-backup-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.json`;
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+}
+function restoreData(ev){
+  const file = ev.target.files && ev.target.files[0];
+  if(!file) return;
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{
+      const parsed = JSON.parse(r.result);
+      const incoming = parsed && parsed.data ? parsed.data : parsed;
+      if(!incoming || !Array.isArray(incoming.products) || !Array.isArray(incoming.sales)){
+        throw new Error('形式が違います');
+      }
+      const ok = confirm(`このバックアップから復元しますか？\n\n現在のデータは置き換わります。\n商品 ${incoming.products.length}件 / 会計 ${incoming.sales.length}件`);
+      if(!ok){ ev.target.value=''; return; }
+      db = incoming;
+      save();
+      cart = [];
+      alert('バックアップから復元しました');
+      products();
+    }catch(e){
+      alert('バックアップファイルを読み込めませんでした');
+      ev.target.value='';
+    }
+  };
+  r.readAsText(file);
+}
+
 function newp(){let f=pi.files[0],done=img=>{let n=Number(pst.value)||0;db.products.push({id:Date.now(),name:pn.value||'商品',price:Number(pp.value)||0,stock:n,initial:n,person:pe.value,cat:pc.value||'その他',img:img||''});save();products()};if(!f)return done('');let r=new FileReader();r.onload=()=>done(r.result);r.readAsDataURL(f)}
 
 function cancelLastSale(){
