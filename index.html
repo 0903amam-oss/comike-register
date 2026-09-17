@@ -455,6 +455,44 @@ function cancelLastSale(){
   cancelSale(db.sales[db.sales.length-1].id);
 }
 
+
+function exportSummaryCSV(){
+  const rows = [
+    ['イベント名','担当者','売上','販売数','初期在庫','残在庫','消化率']
+  ];
+  db.people.forEach(person=>{
+    const soldItems=db.sales.flatMap(s=>s.items).filter(i=>i.person===person);
+    const soldQty=soldItems.reduce((s,i)=>s+(Number(i.qty)||0),0);
+    const soldAmount=soldItems.reduce((s,i)=>s+(Number(i.qty)||0)*(Number(i.price)||0),0);
+    const products=db.products.filter(p=>p.person===person);
+    const initial=products.reduce((s,p)=>s+(Number(p.initial)||0),0);
+    const remaining=products.reduce((s,p)=>s+(Number(p.stock)||0),0);
+    const rate=initial>0 ? Math.round((soldQty/initial)*1000)/10 : 0;
+    rows.push([db.eventName||'',person,soldAmount,soldQty,initial,remaining,rate+'%']);
+  });
+  rows.push([
+    db.eventName||'',
+    '合計',
+    db.sales.reduce((s,x)=>s+(Number(x.total)||0),0),
+    db.sales.reduce((s,x)=>s+x.items.reduce((a,i)=>a+(Number(i.qty)||0),0),0),
+    db.products.reduce((s,p)=>s+(Number(p.initial)||0),0),
+    db.products.reduce((s,p)=>s+(Number(p.stock)||0),0),
+    ''
+  ]);
+
+  const csv='\ufeff'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  const d=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const safeEvent=(db.eventName||'event').replace(/[\\/:*?"<>|]/g,'_');
+  a.href=URL.createObjectURL(blob);
+  a.download=`${safeEvent}-summary-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+}
+
 function csvCell(v){
   const s = String(v ?? '');
   return '"' + s.replace(/"/g,'""') + '"';
@@ -507,19 +545,24 @@ function report(){
     let soldItems=db.sales.flatMap(s=>s.items).filter(i=>i.person===p);
     let soldQty=soldItems.reduce((s,i)=>s+(Number(i.qty)||0),0);
     let soldAmount=soldItems.reduce((s,i)=>s+(Number(i.qty)||0)*(Number(i.price)||0),0);
-    let remaining=db.products.filter(x=>x.person===p).reduce((s,x)=>s+(Number(x.stock)||0),0);
-    let initial=db.products.filter(x=>x.person===p).reduce((s,x)=>s+(Number(x.initial)||0),0);
-    return [p,soldQty,soldAmount,remaining,initial];
+    let products=db.products.filter(x=>x.person===p);
+    let remaining=products.reduce((s,x)=>s+(Number(x.stock)||0),0);
+    let initial=products.reduce((s,x)=>s+(Number(x.initial)||0),0);
+    let rate=initial>0 ? Math.round((soldQty/initial)*1000)/10 : 0;
+    return [p,soldQty,soldAmount,remaining,initial,rate];
   }),cats={},prods={};
   db.sales.flatMap(s=>s.items).forEach(i=>{
     cats[i.cat]=(cats[i.cat]||0)+i.qty*i.price;
     prods[i.name]=(prods[i.name]||0)+i.qty*i.price
   });
-  app.innerHTML=`<div class="stats"><div class="card"><div class="label">総売上</div><div class="big">${yen(sales())}</div></div><div class="card"><div class="label">会計</div><div class="big">${db.sales.length}件</div></div><div class="card"><div class="label">販売数</div><div class="big">${units()}個</div></div></div><div class="box"><h3>担当者別サマリー</h3>
+  app.innerHTML=`<div class="stats"><div class="card"><div class="label">総売上</div><div class="big">${yen(sales())}</div></div><div class="card"><div class="label">会計</div><div class="big">${db.sales.length}件</div></div><div class="card"><div class="label">販売数</div><div class="big">${units()}個</div></div></div><div class="box"><h3>売上分配サマリー</h3>
+<p class="label">コミケ終了後の分配確認用。各担当者の商品売上・販売数・在庫状況をまとめています。</p>
 <table>
-  <tr><th>担当者</th><th>売上</th><th>販売数</th><th>残在庫</th></tr>
-  ${ppl.map(x=>`<tr><td>${escapeHtml(x[0])}</td><td>${yen(x[2])}</td><td>${x[1]}個</td><td>${x[3]}個</td></tr>`).join('')}
+  <tr><th>担当者</th><th>売上</th><th>販売数</th><th>初期在庫</th><th>残在庫</th><th>消化率</th></tr>
+  ${ppl.map(x=>`<tr><td><b>${escapeHtml(x[0])}</b></td><td><b>${yen(x[2])}</b></td><td>${x[1]}個</td><td>${x[4]}個</td><td>${x[3]}個</td><td>${x[5]}%</td></tr>`).join('')}
+  <tr><td><b>合計</b></td><td><b>${yen(ppl.reduce((s,x)=>s+x[2],0))}</b></td><td><b>${ppl.reduce((s,x)=>s+x[1],0)}個</b></td><td>${ppl.reduce((s,x)=>s+x[4],0)}個</td><td>${ppl.reduce((s,x)=>s+x[3],0)}個</td><td>-</td></tr>
 </table>
+<div style="margin-top:12px"><button class="btn primary" onclick="exportSummaryCSV()">分配サマリーCSVを保存</button></div>
 </div>${ppl.map(x=>`
 <div class="box">
   <h3>${escapeHtml(x[0])}の商品在庫</h3>
@@ -541,7 +584,7 @@ ${db.sales.length ? [...db.sales].reverse().map((s,revIdx)=>`
   </div>
 </div>`).join('') : '<div class="label">会計履歴はまだありません。</div>'}
 </div>
-<div class="box"><h3>データ出力</h3><p class="label">売上明細をCSVで保存できます。ExcelやGoogleスプレッドシートで開けます。</p>
+<div class="box"><h3>詳細データ</h3><p class="label">必要な場合のみ、会計明細をCSVで保存できます。</p>
 <button class="btn primary" onclick="exportSalesCSV()" ${db.sales.length?'':'disabled'}>売上CSVを保存</button></div>
 <div class="box"><h3>会計操作</h3><p class="label">誤って確定した場合、直前の会計1件だけ取り消せます。在庫も自動で戻ります。</p>
 <button class="btn danger" onclick="cancelLastSale()" ${db.sales.length?'':'disabled'}>直前の会計を取消</button></div>`}
