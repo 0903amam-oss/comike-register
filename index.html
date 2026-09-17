@@ -52,6 +52,11 @@ function products(){app.innerHTML=`<div class="box"><h3>商品登録</h3><div cl
   <div>担当者3<input id="person3" value="${escapeHtml(db.people[2]||'Cさん')}"></div>
 </div>
 <br><button class="btn primary" onclick="savePeople()">担当者名を保存</button></div>
+<div class="box"><h3>本番準備</h3>
+<p class="label">テスト会計を消して本番開始状態に戻します。商品・画像・担当者・イベント名・商品並び順は残ります。</p>
+<p class="label"><b>消えるもの：</b>売上履歴 / 会計件数 / レジ開始金 / 終了精算。商品在庫は「初期在庫」に戻ります。</p>
+<button class="btn danger" onclick="resetForEvent()">本番開始用にリセット</button>
+</div>
 <div class="box"><h3>バックアップ / 復元</h3><p class="label">商品・在庫・売上・レジ金をまとめて保存できます。本番前や終了後にバックアップ推奨。</p>
 <div style="display:flex;gap:8px;flex-wrap:wrap">
 <button class="btn primary" onclick="backupData()">バックアップ保存</button>
@@ -93,6 +98,36 @@ function savePeople(){
   db.people = next;
   save();
   alert('担当者名を変更しました');
+  products();
+}
+
+
+function resetForEvent(){
+  const first = confirm(
+    '本番開始用にリセットしますか？\n\n' +
+    '・売上履歴を0件にする\n' +
+    '・開始レジ金をクリア\n' +
+    '・終了精算をクリア\n' +
+    '・商品在庫を初期在庫に戻す\n\n' +
+    '商品設定・画像・担当者名・イベント名は残ります。\n先にバックアップ保存することをおすすめします。'
+  );
+  if(!first) return;
+
+  const word = prompt('誤操作防止のため「RESET」と入力してください');
+  if(word !== 'RESET') {
+    alert('リセットを中止しました');
+    return;
+  }
+
+  db.sales = [];
+  db.opening = null;
+  db.final = null;
+  db.products.forEach(p=>{
+    if(Number.isFinite(Number(p.initial))) p.stock = Number(p.initial);
+  });
+  cart = [];
+  save();
+  alert('本番開始状態にリセットしました');
   products();
 }
 
