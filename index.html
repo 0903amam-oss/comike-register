@@ -261,20 +261,27 @@ function saveProductEdit(id){
   if(!Number.isFinite(stock) || stock < 0) return alert('在庫数を正しく入力してください');
 
   const apply = img=>{
+    const before = {...p};
     p.name=name;
     p.price=price;
     p.stock=stock;
     p.person=person;
     p.cat=cat;
     if(img!==null) p.img=img;
-    save();
+    try{
+      save();
+    }catch(err){
+      Object.assign(p,before);
+      console.error(err);
+      alert('保存容量が足りず変更を保存できませんでした');
+      return;
+    }
     products();
+    showToast(`✓ 「${name}」を更新しました`);
   };
 
   if(!file) return apply(null);
-  const r=new FileReader();
-  r.onload=()=>apply(r.result);
-  r.readAsDataURL(file);
+  compressProductImage(file, apply, ()=>alert('商品画像を読み込めませんでした'));
 }
 function escapeHtml(v){
   return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -292,6 +299,33 @@ function deleteProduct(id){
   cart = cart.filter(x=>x.id!==id);
   save();
   products();
+}
+
+
+function compressProductImage(file, callback, onError){
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const img = new Image();
+    img.onload = ()=>{
+      try{
+        const maxSide = 700;
+        let w = img.naturalWidth || img.width;
+        let h = img.naturalHeight || img.height;
+        const scale = Math.min(1, maxSide / Math.max(w,h));
+        w = Math.max(1, Math.round(w*scale));
+        h = Math.max(1, Math.round(h*scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img,0,0,w,h);
+        callback(canvas.toDataURL('image/jpeg',0.72));
+      }catch(e){ if(onError) onError(e); }
+    };
+    img.onerror = ()=>onError && onError(new Error('image decode failed'));
+    img.src = reader.result;
+  };
+  reader.onerror = ()=>onError && onError(new Error('file read failed'));
+  reader.readAsDataURL(file);
 }
 
 function newp(){
@@ -327,34 +361,33 @@ function newp(){
   if(status) status.textContent = file ? '画像を読み込んでいます…' : '登録しています…';
 
   const finish = img=>{
+    const product = {
+      id:Date.now(),
+      name:name,
+      price:price,
+      stock:n,
+      initial:n,
+      person:person,
+      cat:cat,
+      img:img || ''
+    };
+    db.products.push(product);
     try{
-      db.products.push({
-        id:Date.now(),
-        name:name,
-        price:price,
-        stock:n,
-        initial:n,
-        person:person,
-        cat:cat,
-        img:img || ''
-      });
       save();
-      products();
-
-      requestAnimationFrame(()=>{
-        const list = document.getElementById('registeredProducts');
-        if(list) list.scrollIntoView({behavior:'smooth',block:'start'});
-        showToast(`✓ 「${name}」を登録しました`);
-      });
     }catch(err){
+      db.products = db.products.filter(x=>x.id!==product.id);
       console.error(err);
-      alert('商品の登録中にエラーが発生しました');
-      if(btn){
-        btn.disabled=false;
-        btn.textContent='登録';
-      }
+      alert('保存容量が足りず登録できませんでした。画像を軽くしてもう一度お試しください');
+      if(btn){ btn.disabled=false; btn.textContent='登録'; }
       if(status) status.textContent='登録できませんでした';
+      return;
     }
+    products();
+    requestAnimationFrame(()=>{
+      const list = document.getElementById('registeredProducts');
+      if(list) list.scrollIntoView({behavior:'smooth',block:'start'});
+      showToast(`✓ 「${name}」を登録しました`);
+    });
   };
 
   if(!file){
@@ -362,17 +395,11 @@ function newp(){
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = ()=>finish(reader.result);
-  reader.onerror = ()=>{
-    if(btn){
-      btn.disabled=false;
-      btn.textContent='登録';
-    }
+  compressProductImage(file, finish, ()=>{
+    if(btn){ btn.disabled=false; btn.textContent='登録'; }
     if(status) status.textContent='画像の読み込みに失敗しました';
     alert('商品画像を読み込めませんでした');
-  };
-  reader.readAsDataURL(file);
+  });
 }
 function report(){let ppl=db.people.map(p=>{let a=db.sales.flatMap(s=>s.items).filter(i=>i.person===p);return[p,a.reduce((s,i)=>s+i.qty,0),a.reduce((s,i)=>s+i.qty*i.price,0)]}),cats={},prods={};db.sales.flatMap(s=>s.items).forEach(i=>{cats[i.cat]=(cats[i.cat]||0)+i.qty*i.price;prods[i.name]=(prods[i.name]||0)+i.qty*i.price});app.innerHTML=`<div class="stats"><div class="card"><div class="label">総売上</div><div class="big">${yen(sales())}</div></div><div class="card"><div class="label">会計</div><div class="big">${db.sales.length}件</div></div><div class="card"><div class="label">販売数</div><div class="big">${units()}個</div></div></div><div class="box"><h3>3人別売上</h3><table>${ppl.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}個</td><td>${yen(x[2])}</td></tr>`).join('')}</table></div><div class="box"><h3>カテゴリ別</h3><table>${Object.entries(cats).map(x=>`<tr><td>${x[0]}</td><td>${yen(x[1])}</td></tr>`).join('')}</table></div><div class="box"><h3>商品別</h3><table>${Object.entries(prods).map(x=>`<tr><td>${x[0]}</td><td>${yen(x[1])}</td></tr>`).join('')}</table></div>
 <div class="box"><h3>会計履歴</h3><p class="label">過去の会計を個別に確認・取消できます。取消すると売上から削除され、在庫も戻ります。</p>
