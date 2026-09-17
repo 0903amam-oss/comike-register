@@ -38,7 +38,7 @@ function minus(i){if(--cart[i].qty<=0)cart.splice(i,1);reg()} function total(){r
 function chg(){change.textContent='お釣り '+yen(Math.max(0,(Number(recv.value)||0)-total()))} function qp(v){recv.value=v;chg()} function exact(){recv.value=total();chg()}
 function checkout(){if(!cart.length)return alert('商品を選択してください');let t=total(),r=Number(recv.value)||0;if(r<t)return alert('お預かり金額が不足しています');db.products.forEach(p=>{let x=cart.find(c=>c.id===p.id);if(x)p.stock-=x.qty});db.sales.push({id:Date.now(),time:new Date().toLocaleString('ja-JP'),total:t,received:r,change:r-t,items:cart.map(x=>({productId:x.id,name:x.name,price:x.price,qty:x.qty,person:x.person,cat:x.cat}))});save();cart=[];alert('お釣り '+yen(r-t));reg()}
 function products(){app.innerHTML=`<div class="box"><h3>商品登録</h3><div class="grid3"><div>商品名<input id="pn"></div><div>価格<input id="pp" type="number"></div><div>初期在庫<input id="pst" type="number"></div><div>担当者<select id="pe">${db.people.map(x=>`<option>${x}</option>`).join('')}</select></div><div>カテゴリ<input id="pc"></div><div>商品画像<input id="pi" type="file" accept="image/*"></div></div><br><button class="btn primary" onclick="newp()">登録</button></div>
-<div class="box"><h3>登録商品</h3><p class="label">↑↓で会計画面の商品表示順を変更できます。</p>${db.products.map((p,idx)=>`
+<div class="box" id="registeredProducts"><h3>登録商品</h3><p class="label">↑↓で会計画面の商品表示順を変更できます。</p>${db.products.map((p,idx)=>`
 <div class="product-admin-item">
   <div class="product-admin-thumb">${p.img?`<img src="${p.img}" alt="">`:'📦'}</div>
   <div class="product-admin-main"><b>${p.name}</b> / ${yen(p.price)} / ${p.person} / ${p.cat} / 残${p.stock}</div>
@@ -279,7 +279,45 @@ function deleteProduct(id){
   products();
 }
 
-function newp(){let f=pi.files[0],done=img=>{let n=Number(pst.value)||0;db.products.push({id:Date.now(),name:pn.value||'商品',price:Number(pp.value)||0,stock:n,initial:n,person:pe.value,cat:pc.value||'その他',img:img||''});save();products()};if(!f)return done('');let r=new FileReader();r.onload=()=>done(r.result);r.readAsDataURL(f)}
+function newp(){
+  const name = pn.value.trim();
+  const price = Number(pp.value);
+  const n = Number(pst.value);
+  const person = pe.value;
+  const cat = pc.value.trim() || 'その他';
+  const f = pi.files[0];
+
+  if(!name) return alert('商品名を入力してください');
+  if(!Number.isFinite(price) || price < 0) return alert('価格を正しく入力してください');
+  if(!Number.isFinite(n) || n < 0) return alert('初期在庫を正しく入力してください');
+
+  const done = img=>{
+    db.products.push({
+      id:Date.now(),
+      name,
+      price,
+      stock:n,
+      initial:n,
+      person,
+      cat,
+      img:img||''
+    });
+    save();
+    products();
+
+    setTimeout(()=>{
+      const list=document.getElementById('registeredProducts');
+      if(list) list.scrollIntoView({behavior:'smooth',block:'start'});
+      alert(`「${name}」を登録しました`);
+    },50);
+  };
+
+  if(!f) return done('');
+  const r=new FileReader();
+  r.onload=()=>done(r.result);
+  r.onerror=()=>alert('商品画像を読み込めませんでした');
+  r.readAsDataURL(f);
+}
 
 
 function csvCell(v){
