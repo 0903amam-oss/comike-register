@@ -225,6 +225,52 @@ function deleteProduct(id){
 
 function newp(){let f=pi.files[0],done=img=>{let n=Number(pst.value)||0;db.products.push({id:Date.now(),name:pn.value||'商品',price:Number(pp.value)||0,stock:n,initial:n,person:pe.value,cat:pc.value||'その他',img:img||''});save();products()};if(!f)return done('');let r=new FileReader();r.onload=()=>done(r.result);r.readAsDataURL(f)}
 
+
+function csvCell(v){
+  const s = String(v ?? '');
+  return '"' + s.replace(/"/g,'""') + '"';
+}
+
+function exportSalesCSV(){
+  if(!db.sales.length) return alert('売上データがありません');
+
+  const rows = [
+    ['イベント名','会計日時','会計ID','担当者','カテゴリ','商品名','単価','数量','小計','会計合計','預かり金','お釣り']
+  ];
+
+  db.sales.forEach(s=>{
+    s.items.forEach(i=>{
+      rows.push([
+        db.eventName || '',
+        s.time || '',
+        s.id || '',
+        i.person || '',
+        i.cat || '',
+        i.name || '',
+        i.price || 0,
+        i.qty || 0,
+        (i.price||0)*(i.qty||0),
+        s.total || 0,
+        s.received || 0,
+        s.change || 0
+      ]);
+    });
+  });
+
+  const csv = '\ufeff' + rows.map(r=>r.map(csvCell).join(',')).join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  const d = new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const safeEvent=(db.eventName||'event').replace(/[\\/:*?"<>|]/g,'_');
+  const name=`${safeEvent}-sales-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.csv`;
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+}
+
 function cancelLastSale(){
   if(!db.sales.length) return alert('取り消せる会計がありません');
   const last = db.sales[db.sales.length-1];
@@ -243,6 +289,8 @@ function cancelLastSale(){
 }
 
 function report(){let ppl=db.people.map(p=>{let a=db.sales.flatMap(s=>s.items).filter(i=>i.person===p);return[p,a.reduce((s,i)=>s+i.qty,0),a.reduce((s,i)=>s+i.qty*i.price,0)]}),cats={},prods={};db.sales.flatMap(s=>s.items).forEach(i=>{cats[i.cat]=(cats[i.cat]||0)+i.qty*i.price;prods[i.name]=(prods[i.name]||0)+i.qty*i.price});app.innerHTML=`<div class="stats"><div class="card"><div class="label">総売上</div><div class="big">${yen(sales())}</div></div><div class="card"><div class="label">会計</div><div class="big">${db.sales.length}件</div></div><div class="card"><div class="label">販売数</div><div class="big">${units()}個</div></div></div><div class="box"><h3>3人別売上</h3><table>${ppl.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}個</td><td>${yen(x[2])}</td></tr>`).join('')}</table></div><div class="box"><h3>カテゴリ別</h3><table>${Object.entries(cats).map(x=>`<tr><td>${x[0]}</td><td>${yen(x[1])}</td></tr>`).join('')}</table></div><div class="box"><h3>商品別</h3><table>${Object.entries(prods).map(x=>`<tr><td>${x[0]}</td><td>${yen(x[1])}</td></tr>`).join('')}</table></div>
+<div class="box"><h3>データ出力</h3><p class="label">売上明細をCSVで保存できます。ExcelやGoogleスプレッドシートで開けます。</p>
+<button class="btn primary" onclick="exportSalesCSV()" ${db.sales.length?'':'disabled'}>売上CSVを保存</button></div>
 <div class="box"><h3>会計操作</h3><p class="label">誤って確定した場合、直前の会計1件だけ取り消せます。在庫も自動で戻ります。</p>
 <button class="btn danger" onclick="cancelLastSale()" ${db.sales.length?'':'disabled'}>直前の会計を取消</button></div>`}
 const ct=o=>Object.entries(o||{}).reduce((s,[d,n])=>s+Number(d)*Number(n),0);
