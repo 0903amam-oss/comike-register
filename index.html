@@ -35,7 +35,8 @@ function add(id){let p=db.products.find(x=>x.id===id);if(p.stock<=0)return alert
 function minus(i){if(--cart[i].qty<=0)cart.splice(i,1);reg()} function total(){return cart.reduce((a,x)=>a+x.price*x.qty,0)}
 function chg(){change.textContent='お釣り '+yen(Math.max(0,(Number(recv.value)||0)-total()))} function qp(v){recv.value=v;chg()} function exact(){recv.value=total();chg()}
 function checkout(){if(!cart.length)return alert('商品を選択してください');let t=total(),r=Number(recv.value)||0;if(r<t)return alert('お預かり金額が不足しています');db.products.forEach(p=>{let x=cart.find(c=>c.id===p.id);if(x)p.stock-=x.qty});db.sales.push({id:Date.now(),time:new Date().toLocaleString('ja-JP'),total:t,received:r,change:r-t,items:cart.map(x=>({name:x.name,price:x.price,qty:x.qty,person:x.person,cat:x.cat}))});save();cart=[];alert('お釣り '+yen(r-t));reg()}
-function products(){app.innerHTML=`<div class="box"><h3>商品登録</h3><div class="grid3"><div>商品名<input id="pn"></div><div>価格<input id="pp" type="number"></div><div>初期在庫<input id="pst" type="number"></div><div>担当者<select id="pe">${db.people.map(x=>`<option>${x}</option>`).join('')}</select></div><div>カテゴリ<input id="pc"></div><div>商品画像<input id="pi" type="file" accept="image/*"></div></div><br><button class="btn primary" onclick="newp()">登録</button></div><div class="box">${db.products.map(p=>`<div class="row"><span>${p.name} / ${yen(p.price)} / ${p.person} / 残${p.stock}</span></div>`).join('')}</div>
+function products(){app.innerHTML=`<div class="box"><h3>商品登録</h3><div class="grid3"><div>商品名<input id="pn"></div><div>価格<input id="pp" type="number"></div><div>初期在庫<input id="pst" type="number"></div><div>担当者<select id="pe">${db.people.map(x=>`<option>${x}</option>`).join('')}</select></div><div>カテゴリ<input id="pc"></div><div>商品画像<input id="pi" type="file" accept="image/*"></div></div><br><button class="btn primary" onclick="newp()">登録</button></div>
+<div class="box"><h3>登録商品</h3>${db.products.map(p=>`<div class="row"><span><b>${p.name}</b> / ${yen(p.price)} / ${p.person} / ${p.cat} / 残${p.stock}</span><span style="display:flex;gap:6px"><button class="btn light" onclick="editProduct(${p.id})">編集</button><button class="btn danger" onclick="deleteProduct(${p.id})">削除</button></span></div>`).join('')}</div>
 <div class="box"><h3>バックアップ / 復元</h3><p class="label">商品・在庫・売上・レジ金をまとめて保存できます。本番前や終了後にバックアップ推奨。</p>
 <div style="display:flex;gap:8px;flex-wrap:wrap">
 <button class="btn primary" onclick="backupData()">バックアップ保存</button>
@@ -84,6 +85,55 @@ function restoreData(ev){
     }
   };
   r.readAsText(file);
+}
+
+
+function editProduct(id){
+  const p = db.products.find(x=>x.id===id);
+  if(!p) return;
+
+  const name = prompt('商品名', p.name);
+  if(name===null) return;
+
+  const priceText = prompt('価格', String(p.price));
+  if(priceText===null) return;
+
+  const stockText = prompt('現在庫', String(p.stock));
+  if(stockText===null) return;
+
+  const cat = prompt('カテゴリ', p.cat || '');
+  if(cat===null) return;
+
+  const person = prompt(`担当者\n${db.people.join(' / ')}`, p.person || db.people[0]);
+  if(person===null) return;
+
+  const price = Number(priceText);
+  const stock = Number(stockText);
+  if(!Number.isFinite(price) || price < 0) return alert('価格を正しく入力してください');
+  if(!Number.isFinite(stock) || stock < 0) return alert('在庫数を正しく入力してください');
+
+  p.name = name.trim() || p.name;
+  p.price = price;
+  p.stock = stock;
+  p.cat = cat.trim() || 'その他';
+  p.person = person.trim() || p.person;
+
+  save();
+  products();
+}
+
+function deleteProduct(id){
+  const p = db.products.find(x=>x.id===id);
+  if(!p) return;
+  const used = db.sales.some(s=>s.items.some(i=>i.name===p.name && i.price===p.price));
+  const msg = used
+    ? `「${p.name}」を削除しますか？\n\n過去の売上データは残ります。`
+    : `「${p.name}」を削除しますか？`;
+  if(!confirm(msg)) return;
+  db.products = db.products.filter(x=>x.id!==id);
+  cart = cart.filter(x=>x.id!==id);
+  save();
+  products();
 }
 
 function newp(){let f=pi.files[0],done=img=>{let n=Number(pst.value)||0;db.products.push({id:Date.now(),name:pn.value||'商品',price:Number(pp.value)||0,stock:n,initial:n,person:pe.value,cat:pc.value||'その他',img:img||''});save();products()};if(!f)return done('');let r=new FileReader();r.onload=()=>done(r.result);r.readAsDataURL(f)}
