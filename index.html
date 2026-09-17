@@ -31,7 +31,7 @@ input,select{width:100%;border:1px solid #ccc;border-radius:10px;padding:11px;fo
 const KEY='comike-register-v2-data';
 let db=JSON.parse(localStorage.getItem(KEY)||'null')||{eventName:'試作イベント',people:['Aさん','Bさん','Cさん'],sales:[],opening:null,final:null,products:[
 {id:1,name:'新刊',price:1000,stock:100,initial:100,person:'Aさん',cat:'本',img:''},{id:2,name:'アクスタ',price:1500,stock:50,initial:50,person:'Bさん',cat:'グッズ',img:''},{id:3,name:'缶バッジ',price:500,stock:100,initial:100,person:'Cさん',cat:'グッズ',img:''},{id:4,name:'セット',price:3000,stock:30,initial:30,person:'Bさん',cat:'セット',img:''}]};
-if(!db.eventName) db.eventName='試作イベント';
+if(db.eventName==null) db.eventName='';
 db.products.forEach(p=>{if(p.initial==null) p.initial=Number(p.stock)||0});
 let cart=[]; const den=[10000,5000,1000,500,100,50,10,5,1];
 const save=()=>localStorage.setItem(KEY,JSON.stringify(db)), yen=n=>'¥'+Number(n||0).toLocaleString('ja-JP');
@@ -47,7 +47,7 @@ function showToast(msg){
 }
 
 const sales=()=>db.sales.reduce((a,x)=>a+x.total,0), units=()=>db.sales.flatMap(x=>x.items).reduce((a,x)=>a+x.qty,0);
-function renderEventTitle(){const el=document.getElementById('eventTitle');if(el)el.textContent=db.eventName||'試作イベント'}
+function renderEventTitle(){const el=document.getElementById('eventTitle');if(el)el.textContent=db.eventName||'イベント名未設定'}
 function show(x){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('on'));document.getElementById('t'+x).classList.add('on');renderEventTitle();({r:reg,p:products,s:report,c:cash})[x]()}
 function reg(){let t=cart.reduce((a,x)=>a+x.price*x.qty,0);app.innerHTML=`<div class="stats"><div class="card"><div class="label">本日の売上</div><div class="big">${yen(sales())}</div></div><div class="card"><div class="label">会計件数</div><div class="big">${db.sales.length}件</div></div><div class="card"><div class="label">販売数</div><div class="big">${units()}個</div></div></div><div class="register"><div class="products">${db.products.map(p=>`<button class="product ${p.stock<=0?'soldout':''}" onclick="add(${p.id})" ${p.stock<=0?'disabled':''}>${p.stock<=0?'<span class="soldout-badge">SOLD OUT</span>':''}${p.img?`<img src="${p.img}">`:`<div class="ph">📦</div>`}<div class="pbody"><b>${p.name}</b>${yen(p.price)}<div class="stock">${p.stock<=0?'売り切れ':'残り '+p.stock}</div></div></button>`).join('')}</div><div class="panel cart"><h3>今回のお会計</h3>${cart.length?cart.map((x,i)=>`<div class="row"><span>${x.name} × ${x.qty}</span><span>${yen(x.price*x.qty)} <button class="btn light" onclick="minus(${i})">−</button></span></div>`).join(''):'<div class="label">商品をタップしてください</div>'}<div class="row"><b>合計</b><b class="amount">${yen(t)}</b></div><input id="recv" inputmode="numeric" type="number" placeholder="お預かり金額" oninput="chg()"><div class="quick"><button class="btn" onclick="exact()">ちょうど</button><button class="btn" onclick="qp(1000)">¥1,000</button><button class="btn" onclick="qp(5000)">¥5,000</button><button class="btn" onclick="qp(10000)">¥10,000</button></div><div id="change" class="change">お釣り ¥0</div><button class="btn primary checkout" onclick="checkout()">会計確定</button><button class="btn light" style="width:100%;margin-top:8px" onclick="freeCheckout()">交換・無償で確定</button></div></div>`}
 function add(id){let p=db.products.find(x=>x.id===id);if(p.stock<=0)return alert('在庫切れです');let x=cart.find(x=>x.id===id);if(x){if(x.qty>=p.stock)return alert('在庫数を超えています');x.qty++}else cart.push({...p,qty:1});reg()}
@@ -123,10 +123,10 @@ function products(){app.innerHTML=`<div class="box"><h3>商品登録</h3><div cl
   <div>担当者3<input id="person3" value="${escapeHtml(db.people[2]||'Cさん')}"></div>
 </div>
 <br><button class="btn primary" onclick="savePeople()">担当者名を保存</button></div>
-<div class="box"><h3>本番準備</h3>
+<div class="box"><h3>次イベント準備</h3>
 <p class="label">テスト会計を消して本番開始状態に戻します。商品・画像・担当者・イベント名・商品並び順は残ります。</p>
-<p class="label"><b>消えるもの：</b>売上履歴 / 会計件数 / レジ開始金 / 終了精算。商品在庫は「初期在庫」に戻ります。</p>
-<button class="btn danger" onclick="resetForEvent()">本番開始用にリセット</button>
+<p class="label"><b>消えるもの：</b>通常販売・交換/無償の全履歴 / 会計件数 / 販売数 / 無償数 / レジ開始金 / 終了精算。商品在庫は「初期在庫」に戻ります。</p>
+<button class="btn danger" onclick="resetForEvent()">次イベント用に完全リセット</button>
 </div>
 <div class="box"><h3>バックアップ / 復元</h3><p class="label">商品・在庫・売上・レジ金をまとめて保存できます。本番前や終了後にバックアップ推奨。</p>
 <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -175,33 +175,69 @@ function savePeople(){
 
 function resetForEvent(){
   const first = confirm(
-    '本番開始用にリセットしますか？\n\n' +
-    '・売上履歴を0件にする\n' +
-    '・開始レジ金をクリア\n' +
-    '・終了精算をクリア\n' +
-    '・商品在庫を初期在庫に戻す\n\n' +
-    '商品設定・画像・担当者名・イベント名は残ります。\n先にバックアップ保存することをおすすめします。'
+    '次のイベント用に完全リセットしますか？\n\n' +
+    '以下のデータをすべて削除します：\n' +
+    '・商品登録\n' +
+    '・商品画像\n' +
+    '・価格 / 在庫 / 初期在庫 / カテゴリ\n' +
+    '・担当者名\n' +
+    '・イベント名\n' +
+    '・通常販売 / 交換・無償の履歴\n' +
+    '・会計件数 / 販売数 / 無償数\n' +
+    '・開始レジ金 / 終了精算\n\n' +
+    '次に使う人がゼロから設定できる状態になります。\n' +
+    '必要なら先にバックアップを保存してください。'
   );
   if(!first) return;
 
-  const word = prompt('誤操作防止のため「RESET」と入力してください');
-  if(word !== 'RESET') {
-    alert('リセットを中止しました');
+  const second = confirm(
+    '本当に全部消しますか？\n\n' +
+    'この操作後、現在のイベントデータはアプリ上から元に戻せません。'
+  );
+  if(!second) return;
+
+  db = {
+    eventName:'',
+    people:['担当者1','担当者2','担当者3'],
+    sales:[],
+    opening:null,
+    final:null,
+    products:[]
+  };
+  cart=[];
+
+  try{
+    save();
+  }catch(err){
+    console.error(err);
+    alert('リセット内容を保存できませんでした');
     return;
   }
 
-  db.sales = [];
-  db.opening = null;
-  db.final = null;
-  db.products.forEach(p=>{
-    if(Number.isFinite(Number(p.initial))) p.stock = Number(p.initial);
-  });
-  cart = [];
-  save();
-  alert('本番開始状態にリセットしました');
-  products();
-}
+  const saved = JSON.parse(localStorage.getItem(KEY)||'null');
+  const ok =
+    saved &&
+    Array.isArray(saved.products) && saved.products.length===0 &&
+    Array.isArray(saved.sales) && saved.sales.length===0 &&
+    saved.opening===null &&
+    saved.final===null;
 
+  products();
+  renderEventTitle();
+
+  if(ok){
+    alert(
+      '次のイベント用に完全リセットしました\n\n' +
+      '商品：0件\n' +
+      '売上・無償履歴：0件\n' +
+      'レジ金：未設定\n' +
+      '担当者名：初期状態\n' +
+      'イベント名：未設定'
+    );
+  }else{
+    alert('リセット後の保存確認に失敗しました。もう一度お試しください');
+  }
+}
 function backupData(){
   const payload = {
     app:"イベントレジ",
@@ -278,7 +314,7 @@ function openProductEditor(id){
         <div>カテゴリ<input id="ec" value="${escapeHtml(p.cat||'')}"></div>
         <div>商品画像<input id="ei" type="file" accept="image/*"></div>
       </div>
-      <p class="label" style="margin-top:10px">初期在庫＝本番開始時の在庫数です。「本番開始用にリセット」を押すと現在庫がこの数に戻ります。</p>
+      <p class="label" style="margin-top:10px">初期在庫＝本番開始時の在庫数です。「次イベント用に完全リセット」を押すと現在庫がこの数に戻ります。</p>
       <div style="display:flex;gap:8px;align-items:center;margin-top:12px">
         ${p.img?`<img src="${p.img}" style="width:90px;height:90px;object-fit:cover;border-radius:10px;border:1px solid #ddd">`:`<div class="ph" style="width:90px;height:90px;border-radius:10px">📦</div>`}
         <div class="label">画像を選ばなければ現在の画像をそのまま使います。</div>
