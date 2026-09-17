@@ -8,7 +8,7 @@
 header{height:58px;background:#fff;border-bottom:1px solid #ddd;display:flex;align-items:center;justify-content:space-between;padding:0 18px;position:sticky;top:0;z-index:10}
 h1{font-size:21px;margin:0}.tabs{height:58px;background:#fff;border-bottom:1px solid #ddd;display:flex;gap:8px;padding:8px 16px;position:sticky;top:58px;z-index:9}
 .tabs button,.btn{border:0;border-radius:11px;padding:11px 15px;font-weight:700}.tabs button{background:#eef0f3}.tabs .on,.primary{background:#222;color:#fff}
-main{padding:12px 16px;max-width:1400px;margin:auto}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:10px}.card,.panel{background:#fff;border-radius:15px;padding:12px;box-shadow:0 1px 4px #0000000d}
+main{padding:12px 16px;max-width:1400px;margin:auto}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:10px}.card,.panel{background:#fff;border-radius:15px;padding:12px;box-shadow:0 1px 4px #0000000d}
 .label{font-size:12px;color:#777}.big{font-size:23px;font-weight:800;margin-top:2px}
 .register{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(330px,.9fr);gap:12px;align-items:start}
 .products{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.product{background:#fff;border:1px solid #ddd;border-radius:13px;overflow:hidden;text-align:left;padding:0;position:relative}.product.soldout{opacity:.48;filter:grayscale(1)}.soldout-badge{position:absolute;top:8px;left:8px;background:#222;color:#fff;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:800;z-index:2}
@@ -44,11 +44,51 @@ function showToast(msg){
 const sales=()=>db.sales.reduce((a,x)=>a+x.total,0), units=()=>db.sales.flatMap(x=>x.items).reduce((a,x)=>a+x.qty,0);
 function renderEventTitle(){const el=document.getElementById('eventTitle');if(el)el.textContent=db.eventName||'試作イベント'}
 function show(x){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('on'));document.getElementById('t'+x).classList.add('on');renderEventTitle();({r:reg,p:products,s:report,c:cash})[x]()}
-function reg(){let t=cart.reduce((a,x)=>a+x.price*x.qty,0);app.innerHTML=`<div class="stats"><div class="card"><div class="label">本日の売上</div><div class="big">${yen(sales())}</div></div><div class="card"><div class="label">会計件数</div><div class="big">${db.sales.length}件</div></div><div class="card"><div class="label">販売数</div><div class="big">${units()}個</div></div></div><div class="register"><div class="products">${db.products.map(p=>`<button class="product ${p.stock<=0?'soldout':''}" onclick="add(${p.id})" ${p.stock<=0?'disabled':''}>${p.stock<=0?'<span class="soldout-badge">SOLD OUT</span>':''}${p.img?`<img src="${p.img}">`:`<div class="ph">📦</div>`}<div class="pbody"><b>${p.name}</b>${yen(p.price)}<div class="stock">${p.stock<=0?'売り切れ':'残り '+p.stock}</div></div></button>`).join('')}</div><div class="panel cart"><h3>今回のお会計</h3>${cart.length?cart.map((x,i)=>`<div class="row"><span>${x.name} × ${x.qty}</span><span>${yen(x.price*x.qty)} <button class="btn light" onclick="minus(${i})">−</button></span></div>`).join(''):'<div class="label">商品をタップしてください</div>'}<div class="row"><b>合計</b><b class="amount">${yen(t)}</b></div><input id="recv" inputmode="numeric" type="number" placeholder="お預かり金額" oninput="chg()"><div class="quick"><button class="btn" onclick="exact()">ちょうど</button><button class="btn" onclick="qp(1000)">¥1,000</button><button class="btn" onclick="qp(5000)">¥5,000</button><button class="btn" onclick="qp(10000)">¥10,000</button></div><div id="change" class="change">お釣り ¥0</div><button class="btn primary checkout" onclick="checkout()">会計確定</button></div></div>`}
+function reg(){let t=cart.reduce((a,x)=>a+x.price*x.qty,0);app.innerHTML=`<div class="stats"><div class="card"><div class="label">本日の売上</div><div class="big">${yen(sales())}</div></div><div class="card"><div class="label">会計件数</div><div class="big">${db.sales.length}件</div></div><div class="card"><div class="label">販売数</div><div class="big">${units()}個</div></div></div><div class="register"><div class="products">${db.products.map(p=>`<button class="product ${p.stock<=0?'soldout':''}" onclick="add(${p.id})" ${p.stock<=0?'disabled':''}>${p.stock<=0?'<span class="soldout-badge">SOLD OUT</span>':''}${p.img?`<img src="${p.img}">`:`<div class="ph">📦</div>`}<div class="pbody"><b>${p.name}</b>${yen(p.price)}<div class="stock">${p.stock<=0?'売り切れ':'残り '+p.stock}</div></div></button>`).join('')}</div><div class="panel cart"><h3>今回のお会計</h3>${cart.length?cart.map((x,i)=>`<div class="row"><span>${x.name} × ${x.qty}</span><span>${yen(x.price*x.qty)} <button class="btn light" onclick="minus(${i})">−</button></span></div>`).join(''):'<div class="label">商品をタップしてください</div>'}<div class="row"><b>合計</b><b class="amount">${yen(t)}</b></div><input id="recv" inputmode="numeric" type="number" placeholder="お預かり金額" oninput="chg()"><div class="quick"><button class="btn" onclick="exact()">ちょうど</button><button class="btn" onclick="qp(1000)">¥1,000</button><button class="btn" onclick="qp(5000)">¥5,000</button><button class="btn" onclick="qp(10000)">¥10,000</button></div><div id="change" class="change">お釣り ¥0</div><button class="btn primary checkout" onclick="checkout()">会計確定</button><button class="btn light" style="width:100%;margin-top:8px" onclick="freeCheckout()">交換・無償で確定</button></div></div>`}
 function add(id){let p=db.products.find(x=>x.id===id);if(p.stock<=0)return alert('在庫切れです');let x=cart.find(x=>x.id===id);if(x){if(x.qty>=p.stock)return alert('在庫数を超えています');x.qty++}else cart.push({...p,qty:1});reg()}
 function minus(i){if(--cart[i].qty<=0)cart.splice(i,1);reg()} function total(){return cart.reduce((a,x)=>a+x.price*x.qty,0)}
 function chg(){change.textContent='お釣り '+yen(Math.max(0,(Number(recv.value)||0)-total()))} function qp(v){recv.value=v;chg()} function exact(){recv.value=total();chg()}
-function checkout(){if(!cart.length)return alert('商品を選択してください');let t=total(),r=Number(recv.value)||0;if(r<t)return alert('お預かり金額が不足しています');db.products.forEach(p=>{let x=cart.find(c=>c.id===p.id);if(x)p.stock-=x.qty});db.sales.push({id:Date.now(),time:new Date().toLocaleString('ja-JP'),total:t,received:r,change:r-t,items:cart.map(x=>({productId:x.id,name:x.name,price:x.price,qty:x.qty,person:x.person,cat:x.cat}))});save();cart=[];alert('お釣り '+yen(r-t));reg()}
+function checkout(){if(!cart.length)return alert('商品を選択してください');let t=total(),r=Number(recv.value)||0;if(r<t)return alert('お預かり金額が不足しています');db.products.forEach(p=>{let x=cart.find(c=>c.id===p.id);if(x)p.stock-=x.qty});db.sales.push({id:Date.now(),type:'paid',time:new Date().toLocaleString('ja-JP'),total:t,received:r,change:r-t,items:cart.map(x=>({productId:x.id,name:x.name,price:x.price,qty:x.qty,person:x.person,cat:x.cat}))});save();cart=[];alert('お釣り '+yen(r-t));reg()}
+
+function freeCheckout(){
+  if(!cart.length) return alert('商品を選択してください');
+  for(const c of cart){
+    const p=db.products.find(p=>p.id===c.id);
+    if(!p || p.stock<c.qty) return alert(`「${c.name}」の在庫が足りません`);
+  }
+
+  const itemText=cart.map(x=>`${x.name} × ${x.qty}`).join('\n');
+  const ok=confirm(`交換・無償として確定しますか？\n\n${itemText}\n\n売上金額は¥0で、在庫だけ減ります。`);
+  if(!ok) return;
+
+  db.products.forEach(p=>{
+    const x=cart.find(c=>c.id===p.id);
+    if(x) p.stock-=x.qty;
+  });
+
+  db.sales.push({
+    id:Date.now(),
+    type:'free',
+    time:new Date().toLocaleString('ja-JP'),
+    total:0,
+    received:0,
+    change:0,
+    items:cart.map(x=>({
+      productId:x.id,
+      name:x.name,
+      price:x.price,
+      qty:x.qty,
+      person:x.person,
+      cat:x.cat
+    }))
+  });
+
+  save();
+  cart=[];
+  reg();
+  showToast('✓ 交換・無償として記録しました');
+}
+
 function products(){app.innerHTML=`<div class="box"><h3>商品登録</h3><div class="grid3"><div>商品名<input id="pn"></div><div>価格<input id="pp" type="number"></div><div>初期在庫<input id="pst" type="number"></div><div>担当者<select id="pe">${db.people.map(x=>`<option>${x}</option>`).join('')}</select></div><div>カテゴリ<input id="pc"></div><div>商品画像<input id="pi" type="file" accept="image/*"></div></div><br>
 <div style="display:flex;align-items:center;gap:12px">
   <button id="productRegisterBtn" class="btn primary" onclick="newp()">登録</button>
@@ -458,23 +498,26 @@ function cancelLastSale(){
 
 function exportSummaryCSV(){
   const rows = [
-    ['イベント名','担当者','売上','販売数','初期在庫','残在庫','消化率']
+    ['イベント名','担当者','売上','販売数','無償数','初期在庫','残在庫','消化率']
   ];
   db.people.forEach(person=>{
-    const soldItems=db.sales.flatMap(s=>s.items).filter(i=>i.person===person);
-    const soldQty=soldItems.reduce((s,i)=>s+(Number(i.qty)||0),0);
-    const soldAmount=soldItems.reduce((s,i)=>s+(Number(i.qty)||0)*(Number(i.price)||0),0);
+    const paidItems=db.sales.filter(s=>(s.type||'paid')!=='free').flatMap(s=>s.items).filter(i=>i.person===person);
+    const freeItems=db.sales.filter(s=>(s.type||'paid')==='free').flatMap(s=>s.items).filter(i=>i.person===person);
+    const soldQty=paidItems.reduce((s,i)=>s+(Number(i.qty)||0),0);
+    const freeQty=freeItems.reduce((s,i)=>s+(Number(i.qty)||0),0);
+    const soldAmount=paidItems.reduce((s,i)=>s+(Number(i.qty)||0)*(Number(i.price)||0),0);
     const products=db.products.filter(p=>p.person===person);
     const initial=products.reduce((s,p)=>s+(Number(p.initial)||0),0);
     const remaining=products.reduce((s,p)=>s+(Number(p.stock)||0),0);
-    const rate=initial>0 ? Math.round((soldQty/initial)*1000)/10 : 0;
-    rows.push([db.eventName||'',person,soldAmount,soldQty,initial,remaining,rate+'%']);
+    const rate=initial>0 ? Math.round(((soldQty+freeQty)/initial)*1000)/10 : 0;
+    rows.push([db.eventName||'',person,soldAmount,soldQty,freeQty,initial,remaining,rate+'%']);
   });
   rows.push([
     db.eventName||'',
     '合計',
     db.sales.reduce((s,x)=>s+(Number(x.total)||0),0),
-    db.sales.reduce((s,x)=>s+x.items.reduce((a,i)=>a+(Number(i.qty)||0),0),0),
+    db.sales.filter(s=>(s.type||'paid')!=='free').reduce((s,x)=>s+x.items.reduce((a,i)=>a+(Number(i.qty)||0),0),0),
+    db.sales.filter(s=>(s.type||'paid')==='free').reduce((s,x)=>s+x.items.reduce((a,i)=>a+(Number(i.qty)||0),0),0),
     db.products.reduce((s,p)=>s+(Number(p.initial)||0),0),
     db.products.reduce((s,p)=>s+(Number(p.stock)||0),0),
     ''
@@ -514,6 +557,7 @@ function exportSalesCSV(){
         db.eventName || '',
         s.time || '',
         s.id || '',
+        (s.type||'paid')==='free' ? '交換・無償' : '通常販売',
         i.person || '',
         i.cat || '',
         i.name || '',
@@ -542,14 +586,16 @@ function exportSalesCSV(){
 
 function report(){
   let ppl=db.people.map(p=>{
-    let soldItems=db.sales.flatMap(s=>s.items).filter(i=>i.person===p);
-    let soldQty=soldItems.reduce((s,i)=>s+(Number(i.qty)||0),0);
-    let soldAmount=soldItems.reduce((s,i)=>s+(Number(i.qty)||0)*(Number(i.price)||0),0);
+    let paidItems=db.sales.filter(s=>(s.type||'paid')!=='free').flatMap(s=>s.items).filter(i=>i.person===p);
+    let freeItems=db.sales.filter(s=>(s.type||'paid')==='free').flatMap(s=>s.items).filter(i=>i.person===p);
+    let soldQty=paidItems.reduce((s,i)=>s+(Number(i.qty)||0),0);
+    let freeQty=freeItems.reduce((s,i)=>s+(Number(i.qty)||0),0);
+    let soldAmount=paidItems.reduce((s,i)=>s+(Number(i.qty)||0)*(Number(i.price)||0),0);
     let products=db.products.filter(x=>x.person===p);
     let remaining=products.reduce((s,x)=>s+(Number(x.stock)||0),0);
     let initial=products.reduce((s,x)=>s+(Number(x.initial)||0),0);
-    let rate=initial>0 ? Math.round((soldQty/initial)*1000)/10 : 0;
-    return [p,soldQty,soldAmount,remaining,initial,rate];
+    let rate=initial>0 ? Math.round(((soldQty+freeQty)/initial)*1000)/10 : 0;
+    return [p,soldQty,soldAmount,remaining,initial,rate,freeQty];
   }),cats={},prods={};
   db.sales.flatMap(s=>s.items).forEach(i=>{
     cats[i.cat]=(cats[i.cat]||0)+i.qty*i.price;
@@ -558,24 +604,28 @@ function report(){
   app.innerHTML=`<div class="stats"><div class="card"><div class="label">総売上</div><div class="big">${yen(sales())}</div></div><div class="card"><div class="label">会計</div><div class="big">${db.sales.length}件</div></div><div class="card"><div class="label">販売数</div><div class="big">${units()}個</div></div></div><div class="box"><h3>売上分配サマリー</h3>
 <p class="label">コミケ終了後の分配確認用。各担当者の商品売上・販売数・在庫状況をまとめています。</p>
 <table>
-  <tr><th>担当者</th><th>売上</th><th>販売数</th><th>初期在庫</th><th>残在庫</th><th>消化率</th></tr>
-  ${ppl.map(x=>`<tr><td><b>${escapeHtml(x[0])}</b></td><td><b>${yen(x[2])}</b></td><td>${x[1]}個</td><td>${x[4]}個</td><td>${x[3]}個</td><td>${x[5]}%</td></tr>`).join('')}
-  <tr><td><b>合計</b></td><td><b>${yen(ppl.reduce((s,x)=>s+x[2],0))}</b></td><td><b>${ppl.reduce((s,x)=>s+x[1],0)}個</b></td><td>${ppl.reduce((s,x)=>s+x[4],0)}個</td><td>${ppl.reduce((s,x)=>s+x[3],0)}個</td><td>-</td></tr>
+  <tr><th>担当者</th><th>売上</th><th>販売数</th><th>無償数</th><th>初期在庫</th><th>残在庫</th><th>消化率</th></tr>
+  ${ppl.map(x=>`<tr><td><b>${escapeHtml(x[0])}</b></td><td><b>${yen(x[2])}</b></td><td>${x[1]}個</td><td>${x[6]}個</td><td>${x[4]}個</td><td>${x[3]}個</td><td>${x[5]}%</td></tr>`).join('')}
+  <tr><td><b>合計</b></td><td><b>${yen(ppl.reduce((s,x)=>s+x[2],0))}</b></td><td><b>${ppl.reduce((s,x)=>s+x[1],0)}個</b></td><td><b>${ppl.reduce((s,x)=>s+x[6],0)}個</b></td><td>${ppl.reduce((s,x)=>s+x[4],0)}個</td><td>${ppl.reduce((s,x)=>s+x[3],0)}個</td><td>-</td></tr>
 </table>
 <div style="margin-top:12px"><button class="btn primary" onclick="exportSummaryCSV()">分配サマリーCSVを保存</button></div>
 </div>${ppl.map(x=>`
 <div class="box">
   <h3>${escapeHtml(x[0])}の商品在庫</h3>
   <table>
-    <tr><th>商品</th><th>残在庫</th><th>初期在庫</th></tr>
-    ${db.products.filter(p=>p.person===x[0]).map(p=>`<tr><td>${escapeHtml(p.name)}</td><td>${p.stock}個</td><td>${p.initial}個</td></tr>`).join('') || '<tr><td colspan="3">担当商品なし</td></tr>'}
+    <tr><th>商品</th><th>有償</th><th>無償</th><th>残在庫</th><th>初期在庫</th></tr>
+    ${db.products.filter(p=>p.person===x[0]).map(p=>{
+      const paid=db.sales.filter(s=>(s.type||'paid')!=='free').flatMap(s=>s.items).filter(i=>(i.productId&&String(i.productId)===String(p.id)) || (!i.productId&&i.name===p.name)).reduce((a,i)=>a+(Number(i.qty)||0),0);
+      const free=db.sales.filter(s=>(s.type||'paid')==='free').flatMap(s=>s.items).filter(i=>(i.productId&&String(i.productId)===String(p.id)) || (!i.productId&&i.name===p.name)).reduce((a,i)=>a+(Number(i.qty)||0),0);
+      return `<tr><td>${escapeHtml(p.name)}</td><td>${paid}個</td><td>${free}個</td><td>${p.stock}個</td><td>${p.initial}個</td></tr>`;
+    }).join('') || '<tr><td colspan="5">担当商品なし</td></tr>'}
   </table>
 </div>`).join('')}<div class="box"><h3>カテゴリ別</h3><table>${Object.entries(cats).map(x=>`<tr><td>${x[0]}</td><td>${yen(x[1])}</td></tr>`).join('')}</table></div><div class="box"><h3>商品別</h3><table>${Object.entries(prods).map(x=>`<tr><td>${x[0]}</td><td>${yen(x[1])}</td></tr>`).join('')}</table></div>
 <div class="box"><h3>会計履歴</h3><p class="label">過去の会計を個別に確認・取消できます。取消すると売上から削除され、在庫も戻ります。</p>
 ${db.sales.length ? [...db.sales].reverse().map((s,revIdx)=>`
 <div class="sale-history">
   <div>
-    <div style="font-weight:800">${escapeHtml(s.time||'日時不明')}　<span style="color:#777;font-weight:600">#${s.id||''}</span></div>
+    <div style="font-weight:800">${escapeHtml(s.time||'日時不明')}　<span style="color:#777;font-weight:600">#${s.id||''}</span> ${(s.type||'paid')==='free'?'<span style="margin-left:8px;background:#eef3ff;padding:3px 7px;border-radius:999px;font-size:12px">交換・無償</span>':''}</div>
     <div class="label" style="margin-top:4px">${s.items.map(i=>`${escapeHtml(i.name)} × ${i.qty}`).join(' / ')}</div>
   </div>
   <div style="display:flex;align-items:center;gap:10px">
