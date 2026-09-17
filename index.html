@@ -1,126 +1,45 @@
 <!doctype html>
-<html lang="ja">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>コミケ現金レジ 試作版</title>
+<html lang="ja"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff"><link rel="manifest" href="manifest.json">
+<title>コミケ現金レジ</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;background:#f5f5f7;color:#222}
-header{position:sticky;top:0;background:#fff;border-bottom:1px solid #ddd;z-index:5;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
-h1{font-size:20px;margin:0}.tabs{display:flex;gap:8px;overflow:auto;padding:10px 12px;background:#fff;border-bottom:1px solid #ddd}.tabs button{border:0;background:#eee;padding:11px 15px;border-radius:12px;font-weight:700;white-space:nowrap}.tabs button.active{background:#222;color:#fff}
-main{padding:14px;max-width:1100px;margin:auto}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}.card{background:#fff;border-radius:16px;padding:14px;box-shadow:0 1px 4px #0001}.label{font-size:12px;color:#777}.big{font-size:25px;font-weight:800;margin-top:5px}
-.products{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.product{background:#fff;border:1px solid #ddd;border-radius:16px;overflow:hidden;cursor:pointer;text-align:left}.product img{width:100%;aspect-ratio:1;object-fit:cover;background:#eee}.product .pbody{padding:10px}.product b{display:block;font-size:16px}.stock{font-size:12px;color:#666;margin-top:4px}
-.cart{margin-top:16px;background:#fff;border-radius:16px;padding:14px}.row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #eee}.row:last-child{border-bottom:0}
-.btn{border:0;border-radius:12px;padding:12px 16px;font-weight:700;cursor:pointer}.primary{background:#222;color:#fff}.danger{background:#fee;color:#b00}.light{background:#eee}.amount{font-size:28px;font-weight:800}.paybox{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.paybox input{font-size:22px;padding:12px;border:1px solid #ccc;border-radius:12px}
-table{width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden}th,td{padding:10px;border-bottom:1px solid #eee;text-align:right}th:first-child,td:first-child{text-align:left}th{background:#f0f0f2;font-size:12px}
-.form{background:#fff;border-radius:16px;padding:14px;margin-bottom:14px}.form input,.form select{width:100%;padding:11px;border:1px solid #ccc;border-radius:10px;margin:5px 0 10px;font-size:16px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.notice{padding:12px;border-radius:12px;background:#fff7d6;margin-bottom:12px}.ok{background:#e9f8ed}.err{background:#ffecec}
-@media(max-width:650px){.summary{grid-template-columns:1fr 1fr}.products{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
-</style>
-<link rel="manifest" href="manifest.json"></head>
-<body>
-<header><h1>コミケ現金レジ</h1><span id="eventName">試作イベント</span></header>
-<nav class="tabs">
-<button onclick="tab('register')" id="t-register" class="active">🧾 会計</button>
-<button onclick="tab('products')" id="t-products">📦 商品管理</button>
-<button onclick="tab('sales')" id="t-sales">📊 売上</button>
-<button onclick="tab('cash')" id="t-cash">💴 レジ精算</button>
-</nav>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;background:#f5f6f8;color:#202124}
+header{height:58px;background:#fff;border-bottom:1px solid #ddd;display:flex;align-items:center;justify-content:space-between;padding:0 18px;position:sticky;top:0;z-index:10}
+h1{font-size:21px;margin:0}.tabs{height:58px;background:#fff;border-bottom:1px solid #ddd;display:flex;gap:8px;padding:8px 16px;position:sticky;top:58px;z-index:9}
+.tabs button,.btn{border:0;border-radius:11px;padding:11px 15px;font-weight:700}.tabs button{background:#eef0f3}.tabs .on,.primary{background:#222;color:#fff}
+main{padding:12px 16px;max-width:1400px;margin:auto}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:10px}.card,.panel{background:#fff;border-radius:15px;padding:12px;box-shadow:0 1px 4px #0000000d}
+.label{font-size:12px;color:#777}.big{font-size:23px;font-weight:800;margin-top:2px}
+.register{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(330px,.9fr);gap:12px;align-items:start}
+.products{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.product{background:#fff;border:1px solid #ddd;border-radius:13px;overflow:hidden;text-align:left;padding:0}
+.product img,.ph{width:100%;height:115px;object-fit:cover;background:#eee}.ph{display:grid;place-items:center;font-size:32px}.pbody{padding:8px}.pbody b{display:block;font-size:14px}.stock{font-size:11px;color:#777;margin-top:3px}
+.cart{position:sticky;top:126px;max-height:calc(100vh - 140px);overflow:auto}.row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid #eee}.amount{font-size:30px;font-weight:900}
+input,select{width:100%;border:1px solid #ccc;border-radius:10px;padding:11px;font-size:18px}.quick{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin:8px 0}.quick button{background:#eef0f3}
+.change{background:#eaf8ee;border-radius:12px;padding:11px;margin:9px 0;font-size:25px;font-weight:900;text-align:center}.checkout{width:100%;font-size:18px;padding:15px}
+.box{background:#fff;border-radius:15px;padding:14px;margin-bottom:12px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px solid #eee;text-align:right}th:first-child,td:first-child{text-align:left}.danger{background:#fee;color:#a00}.light{background:#eee}
+@media(max-width:800px){.register{grid-template-columns:1fr}.products{grid-template-columns:repeat(3,1fr)}.cart{position:static;max-height:none}}
+</style></head><body>
+<header><h1>コミケ現金レジ</h1><span>試作イベント</span></header>
+<nav class="tabs"><button id="tr" class="on" onclick="show('r')">🧾 会計</button><button id="tp" onclick="show('p')">📦 商品管理</button><button id="ts" onclick="show('s')">📊 売上</button><button id="tc" onclick="show('c')">💴 レジ精算</button></nav>
 <main id="app"></main>
 <script>
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
-
-const KEY='comikeRegisterV1';
-let db=JSON.parse(localStorage.getItem(KEY)||'null')||{
- eventName:'試作イベント',
- participants:['Aさん','Bさん','Cさん'],
- products:[
-  {id:1,name:'新刊',price:1000,stock:100,initial:100,person:'Aさん',cat:'本',img:''},
-  {id:2,name:'アクスタ',price:1500,stock:50,initial:50,person:'Bさん',cat:'グッズ',img:''},
-  {id:3,name:'缶バッジ',price:500,stock:100,initial:100,person:'Cさん',cat:'グッズ',img:''}
- ],
- sales:[], opening:null
-};
-let cart=[];
-function save(){localStorage.setItem(KEY,JSON.stringify(db))}
-function yen(n){return '¥'+Number(n||0).toLocaleString('ja-JP')}
-function tab(x){
- document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
- document.getElementById('t-'+x).classList.add('active');
- ({register:renderRegister,products:renderProducts,sales:renderSales,cash:renderCash})[x]();
-}
-function renderRegister(){
- const total=cart.reduce((s,x)=>s+x.price*x.qty,0);
- document.getElementById('app').innerHTML=`
- <div class="summary"><div class="card"><div class="label">本日の売上</div><div class="big">${yen(db.sales.reduce((s,x)=>s+x.total,0))}</div></div>
- <div class="card"><div class="label">会計件数</div><div class="big">${db.sales.length}件</div></div>
- <div class="card"><div class="label">商品販売数</div><div class="big">${db.sales.reduce((s,x)=>s+x.items.reduce((a,i)=>a+i.qty,0),0)}個</div></div></div>
- <div class="products">${db.products.map(p=>`<button class="product" onclick="add(${p.id})">
- ${p.img?`<img src="${p.img}">`:`<div style="aspect-ratio:1;background:#eee;display:grid;place-items:center;font-size:42px">📦</div>`}
- <div class="pbody"><b>${p.name}</b><div>${yen(p.price)}</div><div class="stock">残り ${p.stock}</div></div></button>`).join('')}</div>
- <div class="cart"><h3>今回のお会計</h3>
- ${cart.length?cart.map((x,i)=>`<div class="row"><span>${x.name} × ${x.qty}</span><span>${yen(x.price*x.qty)} <button class="btn light" onclick="removeCart(${i})">−</button></span></div>`).join(''):'<div class="label">商品をタップして追加</div>'}
- <div class="row"><strong>合計</strong><strong class="amount">${yen(total)}</strong></div>
- <div class="paybox"><input id="received" type="number" min="0" placeholder="お預かり金額" value="${total||''}"><button class="btn primary" onclick="checkout()">会計確定</button></div>
- <div id="change" class="notice" style="margin-top:10px">お釣り：${yen(Math.max(0,(Number(document.getElementById('received')?.value)||total)-total))}</div>
- </div>`;
- document.getElementById('received').addEventListener('input',()=>{let v=Number(document.getElementById('received').value)||0;document.getElementById('change').textContent='お釣り：'+yen(Math.max(0,v-total))});
-}
-function add(id){let p=db.products.find(x=>x.id===id);if(!p||p.stock<=0)return alert('在庫切れです');let x=cart.find(x=>x.id===id);if(x){if(x.qty>=p.stock)return alert('在庫数を超えています');x.qty++}else cart.push({...p,qty:1});renderRegister()}
-function removeCart(i){cart[i].qty--;if(cart[i].qty<=0)cart.splice(i,1);renderRegister()}
-function checkout(){
- if(!cart.length)return alert('商品を選択してください');
- let total=cart.reduce((s,x)=>s+x.price*x.qty,0), received=Number(document.getElementById('received').value);
- if(received<total)return alert('お預かり金額が不足しています');
- db.products.forEach(p=>{let x=cart.find(c=>c.id===p.id);if(x)p.stock-=x.qty});
- db.sales.push({id:Date.now(),time:new Date().toLocaleString('ja-JP'),total,received,change:received-total,items:cart.map(x=>({id:x.id,name:x.name,price:x.price,qty:x.qty,person:x.person,cat:x.cat}))});
- cart=[];save();alert('会計しました。お釣り '+yen(received-total));renderRegister()
-}
-function renderProducts(){
- document.getElementById('app').innerHTML=`<div class="form"><h3>商品を追加</h3>
- <div class="grid2"><div><label>商品名</label><input id="pn" placeholder="例：新刊"></div><div><label>価格</label><input id="pp" type="number" placeholder="1000"></div>
- <div><label>初期在庫</label><input id="ps" type="number" placeholder="100"></div><div><label>担当者</label><select id="pe">${db.participants.map(x=>`<option>${x}</option>`).join('')}</select></div>
- <div><label>カテゴリ</label><input id="pc" placeholder="本 / グッズ / セット"></div><div><label>商品画像</label><input id="pi" type="file" accept="image/*"></div></div>
- <button class="btn primary" onclick="addProduct()">商品を登録</button></div>
- <div class="form"><h3>登録済み商品</h3>${db.products.map(p=>`<div class="row"><span>${p.img?'🖼️ ':''}<b>${p.name}</b>　${yen(p.price)}　${p.person}　残${p.stock}</span><button class="btn danger" onclick="delProduct(${p.id})">削除</button></div>`).join('')}</div>`
-}
-function addProduct(){
- let f=document.getElementById('pi').files[0], done=img=>{db.products.push({id:Date.now(),name:document.getElementById('pn').value||'商品',price:Number(document.getElementById('pp').value)||0,stock:Number(document.getElementById('ps').value)||0,initial:Number(document.getElementById('ps').value)||0,person:document.getElementById('pe').value,cat:document.getElementById('pc').value||'その他',img:img||''});save();renderProducts()};
- if(f){let r=new FileReader();r.onload=()=>done(r.result);r.readAsDataURL(f)}else done('')
-}
-function delProduct(id){if(confirm('この商品を削除しますか？')){db.products=db.products.filter(p=>p.id!==id);save();renderProducts()}}
-function renderSales(){
- let total=db.sales.reduce((s,x)=>s+x.total,0);
- let people=db.participants.map(p=>{let v=db.sales.flatMap(x=>x.items).filter(i=>i.person===p);return {p,n:v.reduce((s,i)=>s+i.qty,0),v:v.reduce((s,i)=>s+i.qty*i.price,0)}})
- let cats={};let prods={};db.sales.flatMap(x=>x.items).forEach(i=>{cats[i.cat]=(cats[i.cat]||0)+i.qty*i.price;prods[i.name]=(prods[i.name]||0)+i.qty*i.price});
- document.getElementById('app').innerHTML=`<div class="summary"><div class="card"><div class="label">総売上</div><div class="big">${yen(total)}</div></div><div class="card"><div class="label">会計</div><div class="big">${db.sales.length}件</div></div><div class="card"><div class="label">販売数</div><div class="big">${db.sales.flatMap(x=>x.items).reduce((s,i)=>s+i.qty,0)}個</div></div></div>
- <div class="form"><h3>👤 参加者別</h3><table><tr><th>参加者</th><th>販売数</th><th>売上</th></tr>${people.map(x=>`<tr><td>${x.p}</td><td>${x.n}</td><td>${yen(x.v)}</td></tr>`).join('')}</table></div>
- <div class="form"><h3>🗂 カテゴリ別</h3><table><tr><th>カテゴリ</th><th>売上</th></tr>${Object.entries(cats).map(([k,v])=>`<tr><td>${k}</td><td>${yen(v)}</td></tr>`).join('')}</table></div>
- <div class="form"><h3>📦 商品別</h3><table><tr><th>商品</th><th>売上</th></tr>${Object.entries(prods).map(([k,v])=>`<tr><td>${k}</td><td>${yen(v)}</td></tr>`).join('')}</table></div>
- <button class="btn primary" onclick="exportCSV()">売上CSVを書き出す</button> <button class="btn danger" onclick="resetAll()">データを初期化</button>`
-}
-function cashTotal(o){return Object.entries(o||{}).reduce((s,[k,v])=>s+Number(k)*Number(v),0)}
-const den=[10000,5000,1000,500,100,50,10,5,1];
-function renderCash(){
- let sales=db.sales.reduce((s,x)=>s+x.total,0);
- let opening=db.opening?cashTotal(db.opening):0;
- let expected=opening+sales;
- document.getElementById('app').innerHTML=`<div class="notice">現金のみで管理する試作です。開始レジ金と、終了時の実残高を金種別に入力できます。</div>
- <div class="form"><h3>🌅 開店前：開始レジ金</h3>${den.map(d=>`<div class="row"><span>${yen(d)}</span><input style="width:100px;padding:8px" type="number" min="0" id="o${d}" value="${db.opening?.[d]||0}"><span>枚</span></div>`).join('')}
- <div class="row"><strong>開始レジ金合計</strong><strong>${yen(opening)}</strong></div><button class="btn primary" onclick="saveOpening()">開始レジ金を保存</button></div>
- <div class="form"><h3>🌙 終了時：レジ精算</h3>${den.map(d=>`<div class="row"><span>${yen(d)}</span><input style="width:100px;padding:8px" type="number" min="0" id="f${d}" value="${db.final?.[d]||0}"><span>枚</span></div>`).join('')}
- <div class="row"><strong>理論上のレジ残高</strong><strong>${yen(expected)}</strong></div><div class="row"><strong>実際のレジ残高</strong><strong id="finalTotal">${yen(cashTotal(db.final||{}))}</strong></div>
- <button class="btn primary" onclick="saveFinal()">実際のレジ金を保存・精算</button><div id="diff" class="notice" style="margin-top:10px">過不足：${yen(cashTotal(db.final||{})-expected)}</div></div>`
-}
-function saveOpening(){db.opening={};den.forEach(d=>db.opening[d]=Number(document.getElementById('o'+d).value)||0);save();renderCash()}
-function saveFinal(){db.final={};den.forEach(d=>db.final[d]=Number(document.getElementById('f'+d).value)||0);save();renderCash()}
-function exportCSV(){
- let rows=[['日時','商品','担当者','カテゴリ','単価','数量','売上']];
- db.sales.forEach(s=>s.items.forEach(i=>rows.push([s.time,i.name,i.person,i.cat,i.price,i.qty,i.price*i.qty])));
- let csv='\ufeff'+rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
- let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='comike_sales.csv';a.click()
-}
-function resetAll(){if(confirm('売上・在庫など全データを初期化します。よろしいですか？')){localStorage.removeItem(KEY);location.reload()}}
-renderRegister();
-</script>
-</body>
-</html>
+const KEY='comike-register-v2-data';
+let db=JSON.parse(localStorage.getItem(KEY)||'null')||{people:['Aさん','Bさん','Cさん'],sales:[],opening:null,final:null,products:[
+{id:1,name:'新刊',price:1000,stock:100,initial:100,person:'Aさん',cat:'本',img:''},{id:2,name:'アクスタ',price:1500,stock:50,initial:50,person:'Bさん',cat:'グッズ',img:''},{id:3,name:'缶バッジ',price:500,stock:100,initial:100,person:'Cさん',cat:'グッズ',img:''},{id:4,name:'セット',price:3000,stock:30,initial:30,person:'Bさん',cat:'セット',img:''}]};
+let cart=[]; const den=[10000,5000,1000,500,100,50,10,5,1];
+const save=()=>localStorage.setItem(KEY,JSON.stringify(db)), yen=n=>'¥'+Number(n||0).toLocaleString('ja-JP');
+const sales=()=>db.sales.reduce((a,x)=>a+x.total,0), units=()=>db.sales.flatMap(x=>x.items).reduce((a,x)=>a+x.qty,0);
+function show(x){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('on'));document.getElementById('t'+x).classList.add('on');({r:reg,p:products,s:report,c:cash})[x]()}
+function reg(){let t=cart.reduce((a,x)=>a+x.price*x.qty,0);app.innerHTML=`<div class="stats"><div class="card"><div class="label">本日の売上</div><div class="big">${yen(sales())}</div></div><div class="card"><div class="label">会計件数</div><div class="big">${db.sales.length}件</div></div><div class="card"><div class="label">販売数</div><div class="big">${units()}個</div></div></div><div class="register"><div class="products">${db.products.map(p=>`<button class="product" onclick="add(${p.id})">${p.img?`<img src="${p.img}">`:`<div class="ph">📦</div>`}<div class="pbody"><b>${p.name}</b>${yen(p.price)}<div class="stock">残り ${p.stock}</div></div></button>`).join('')}</div><div class="panel cart"><h3>今回のお会計</h3>${cart.length?cart.map((x,i)=>`<div class="row"><span>${x.name} × ${x.qty}</span><span>${yen(x.price*x.qty)} <button class="btn light" onclick="minus(${i})">−</button></span></div>`).join(''):'<div class="label">商品をタップしてください</div>'}<div class="row"><b>合計</b><b class="amount">${yen(t)}</b></div><input id="recv" inputmode="numeric" type="number" placeholder="お預かり金額" oninput="chg()"><div class="quick"><button class="btn" onclick="exact()">ちょうど</button><button class="btn" onclick="qp(1000)">¥1,000</button><button class="btn" onclick="qp(5000)">¥5,000</button><button class="btn" onclick="qp(10000)">¥10,000</button></div><div id="change" class="change">お釣り ¥0</div><button class="btn primary checkout" onclick="checkout()">会計確定</button></div></div>`}
+function add(id){let p=db.products.find(x=>x.id===id);if(p.stock<=0)return alert('在庫切れです');let x=cart.find(x=>x.id===id);if(x){if(x.qty>=p.stock)return alert('在庫数を超えています');x.qty++}else cart.push({...p,qty:1});reg()}
+function minus(i){if(--cart[i].qty<=0)cart.splice(i,1);reg()} function total(){return cart.reduce((a,x)=>a+x.price*x.qty,0)}
+function chg(){change.textContent='お釣り '+yen(Math.max(0,(Number(recv.value)||0)-total()))} function qp(v){recv.value=v;chg()} function exact(){recv.value=total();chg()}
+function checkout(){if(!cart.length)return alert('商品を選択してください');let t=total(),r=Number(recv.value)||0;if(r<t)return alert('お預かり金額が不足しています');db.products.forEach(p=>{let x=cart.find(c=>c.id===p.id);if(x)p.stock-=x.qty});db.sales.push({id:Date.now(),time:new Date().toLocaleString('ja-JP'),total:t,received:r,change:r-t,items:cart.map(x=>({name:x.name,price:x.price,qty:x.qty,person:x.person,cat:x.cat}))});save();cart=[];alert('お釣り '+yen(r-t));reg()}
+function products(){app.innerHTML=`<div class="box"><h3>商品登録</h3><div class="grid3"><div>商品名<input id="pn"></div><div>価格<input id="pp" type="number"></div><div>初期在庫<input id="pst" type="number"></div><div>担当者<select id="pe">${db.people.map(x=>`<option>${x}</option>`).join('')}</select></div><div>カテゴリ<input id="pc"></div><div>商品画像<input id="pi" type="file" accept="image/*"></div></div><br><button class="btn primary" onclick="newp()">登録</button></div><div class="box">${db.products.map(p=>`<div class="row"><span>${p.name} / ${yen(p.price)} / ${p.person} / 残${p.stock}</span></div>`).join('')}</div>`}
+function newp(){let f=pi.files[0],done=img=>{let n=Number(pst.value)||0;db.products.push({id:Date.now(),name:pn.value||'商品',price:Number(pp.value)||0,stock:n,initial:n,person:pe.value,cat:pc.value||'その他',img:img||''});save();products()};if(!f)return done('');let r=new FileReader();r.onload=()=>done(r.result);r.readAsDataURL(f)}
+function report(){let ppl=db.people.map(p=>{let a=db.sales.flatMap(s=>s.items).filter(i=>i.person===p);return[p,a.reduce((s,i)=>s+i.qty,0),a.reduce((s,i)=>s+i.qty*i.price,0)]}),cats={},prods={};db.sales.flatMap(s=>s.items).forEach(i=>{cats[i.cat]=(cats[i.cat]||0)+i.qty*i.price;prods[i.name]=(prods[i.name]||0)+i.qty*i.price});app.innerHTML=`<div class="stats"><div class="card"><div class="label">総売上</div><div class="big">${yen(sales())}</div></div><div class="card"><div class="label">会計</div><div class="big">${db.sales.length}件</div></div><div class="card"><div class="label">販売数</div><div class="big">${units()}個</div></div></div><div class="box"><h3>3人別売上</h3><table>${ppl.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}個</td><td>${yen(x[2])}</td></tr>`).join('')}</table></div><div class="box"><h3>カテゴリ別</h3><table>${Object.entries(cats).map(x=>`<tr><td>${x[0]}</td><td>${yen(x[1])}</td></tr>`).join('')}</table></div><div class="box"><h3>商品別</h3><table>${Object.entries(prods).map(x=>`<tr><td>${x[0]}</td><td>${yen(x[1])}</td></tr>`).join('')}</table></div>`}
+const ct=o=>Object.entries(o||{}).reduce((s,[d,n])=>s+Number(d)*Number(n),0);
+function cash(){let o=ct(db.opening),a=ct(db.final),e=o+sales();app.innerHTML=`<div class="box"><h3>開始レジ金</h3>${den.map(d=>`<div class="row"><span>${yen(d)}</span><input style="width:110px" id="o${d}" type="number" value="${db.opening?.[d]||0}"><span>枚</span></div>`).join('')}<div class="row"><b>合計</b><b>${yen(o)}</b></div><button class="btn primary" onclick="openSave()">保存</button></div><div class="box"><h3>終了レジ精算</h3>${den.map(d=>`<div class="row"><span>${yen(d)}</span><input style="width:110px" id="f${d}" type="number" value="${db.final?.[d]||0}"><span>枚</span></div>`).join('')}<div class="row"><b>理論残高</b><b>${yen(e)}</b></div><div class="row"><b>実残高</b><b>${yen(a)}</b></div><div class="row"><b>過不足</b><b>${yen(a-e)}</b></div><button class="btn primary" onclick="finalSave()">精算保存</button></div>`}
+function openSave(){db.opening={};den.forEach(d=>db.opening[d]=Number(document.getElementById('o'+d).value)||0);save();cash()}function finalSave(){db.final={};den.forEach(d=>db.final[d]=Number(document.getElementById('f'+d).value)||0);save();cash()}
+if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js'); reg();
+</script></body></html>

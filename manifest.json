@@ -1,9 +1,1 @@
-{
-  "name": "コミケ現金レジ",
-  "short_name": "コミケレジ",
-  "start_url": "./index.html",
-  "display": "standalone",
-  "background_color": "#f5f5f7",
-  "theme_color": "#111111",
-  "description": "コミケ用・現金のみのレジ、在庫、売上、レジ精算アプリ"
-}
+{"name": "コミケ現金レジ", "short_name": "コミケレジ", "start_url": "./index.html", "display": "standalone", "background_color": "#f5f6f8", "theme_color": "#ffffff"}
