@@ -515,52 +515,95 @@ ${db.sales.length ? [...db.sales].reverse().map((s,revIdx)=>`
 <div class="box"><h3>会計操作</h3><p class="label">誤って確定した場合、直前の会計1件だけ取り消せます。在庫も自動で戻ります。</p>
 <button class="btn danger" onclick="cancelLastSale()" ${db.sales.length?'':'disabled'}>直前の会計を取消</button></div>`}
 const ct=o=>Object.entries(o||{}).reduce((s,[d,n])=>s+Number(d)*Number(n),0);
+
+function liveCashTotal(prefix){
+  return den.reduce((sum,d)=>{
+    const el=document.getElementById(prefix+d);
+    return sum + d * Math.max(0, Number(el?.value)||0);
+  },0);
+}
+
+function updateCashPreview(){
+  const openingLive = document.getElementById('o10000') ? liveCashTotal('o') : ct(db.opening);
+  const finalLive = document.getElementById('f10000') ? liveCashTotal('f') : ct(db.final);
+  const cashSales = sales();
+  const expected = openingLive + cashSales;
+  const diff = finalLive - expected;
+
+  const openingEl=document.getElementById('summaryOpening');
+  const salesEl=document.getElementById('summarySales');
+  const expectedEl=document.getElementById('summaryExpected');
+  const finalEl=document.getElementById('summaryFinal');
+  const varianceEl=document.getElementById('summaryVariance');
+  const expectedRow=document.getElementById('expectedRow');
+  const finalRow=document.getElementById('finalRow');
+  const varianceRow=document.getElementById('varianceRow');
+  const openingTotal=document.getElementById('openingTotal');
+
+  if(openingEl) openingEl.textContent=yen(openingLive);
+  if(salesEl) salesEl.textContent=yen(cashSales);
+  if(expectedEl) expectedEl.textContent=yen(expected);
+  if(finalEl) finalEl.textContent=yen(finalLive);
+  if(expectedRow) expectedRow.textContent=yen(expected);
+  if(finalRow) finalRow.textContent=yen(finalLive);
+  if(openingTotal) openingTotal.textContent=yen(openingLive);
+
+  const diffText = diff===0 ? '±¥0' : (diff>0?'+':'−') + yen(Math.abs(diff));
+  if(varianceEl){
+    varianceEl.textContent=diffText;
+    varianceEl.className='variance ' + (diff===0?'ok':diff>0?'plus':'minus');
+  }
+  if(varianceRow) varianceRow.textContent=diffText;
+}
+
 function cash(){
   let o=ct(db.opening), a=ct(db.final), cashSales=sales(), e=o+cashSales, diff=a-e;
   const cls = diff===0 ? 'ok' : diff>0 ? 'plus' : 'minus';
   const diffText = diff===0 ? '±¥0' : (diff>0?'+':'−') + yen(Math.abs(diff));
   app.innerHTML=`
   <div class="cash-summary">
-    <div class="card"><div class="label">開始レジ金</div><div class="big">${yen(o)}</div></div>
-    <div class="card"><div class="label">現金売上</div><div class="big">${yen(cashSales)}</div></div>
-    <div class="card"><div class="label">理論終了金額</div><div class="big">${yen(e)}</div></div>
-    <div class="card"><div class="label">実際の終了金額</div><div class="big">${yen(a)}</div></div>
+    <div class="card"><div class="label">開始レジ金</div><div id="summaryOpening" class="big">${yen(o)}</div></div>
+    <div class="card"><div class="label">現金売上</div><div id="summarySales" class="big">${yen(cashSales)}</div></div>
+    <div class="card"><div class="label">理論終了金額</div><div id="summaryExpected" class="big">${yen(e)}</div></div>
+    <div class="card"><div class="label">実際の終了金額</div><div id="summaryFinal" class="big">${yen(a)}</div></div>
   </div>
   <div class="box">
     <div class="label" style="text-align:center">レジ過不足</div>
-    <div class="variance ${cls}">${diffText}</div>
+    <div id="summaryVariance" class="variance ${cls}">${diffText}</div>
   </div>
   <div class="cash-grid">
     <div class="box">
       <h3>開始レジ金</h3>
       <p class="label">営業開始前の釣り銭を金種ごとに入力します。</p>
-      ${den.map(d=>`<div class="row"><span>${yen(d)}</span><input style="width:110px" id="o${d}" type="number" min="0" inputmode="numeric" value="${db.opening?.[d]||0}"><span>枚</span></div>`).join('')}
-      <div class="row"><b>開始レジ金 合計</b><b>${yen(o)}</b></div>
+      ${den.map(d=>`<div class="row"><span>${yen(d)}</span><input style="width:110px" id="o${d}" type="number" min="0" inputmode="numeric" value="${db.opening?.[d]||0}" oninput="updateCashPreview()"><span>枚</span></div>`).join('')}
+      <div class="row"><b>開始レジ金 合計</b><b id="openingTotal">${yen(o)}</b></div>
       <button class="btn primary" onclick="openSave()">開始レジ金を保存</button>
     </div>
     <div class="box">
       <h3>終了レジ精算</h3>
-      <p class="label">営業終了後、レジ内の現金を金種ごとに数えて入力します。</p>
-      ${den.map(d=>`<div class="row"><span>${yen(d)}</span><input style="width:110px" id="f${d}" type="number" min="0" inputmode="numeric" value="${db.final?.[d]||0}"><span>枚</span></div>`).join('')}
-      <div class="row"><span>理論終了金額</span><b>${yen(e)}</b></div>
-      <div class="row"><span>実際の終了金額</span><b>${yen(a)}</b></div>
-      <div class="row"><b>過不足</b><b>${diffText}</b></div>
+      <p class="label">営業終了後、レジ内の現金を金種ごとに数えて入力します。入力中も上の過不足が自動計算されます。</p>
+      ${den.map(d=>`<div class="row"><span>${yen(d)}</span><input style="width:110px" id="f${d}" type="number" min="0" inputmode="numeric" value="${db.final?.[d]||0}" oninput="updateCashPreview()"><span>枚</span></div>`).join('')}
+      <div class="row"><span>理論終了金額</span><b id="expectedRow">${yen(e)}</b></div>
+      <div class="row"><span>実際の終了金額</span><b id="finalRow">${yen(a)}</b></div>
+      <div class="row"><b>過不足</b><b id="varianceRow">${diffText}</b></div>
       <button class="btn primary" onclick="finalSave()">終了精算を保存</button>
     </div>
-  </div>`}
+  </div>`;
+  updateCashPreview();
+}
 function openSave(){
   db.opening={};
   den.forEach(d=>db.opening[d]=Math.max(0,Number(document.getElementById('o'+d).value)||0));
   save();
   cash();
-  alert('開始レジ金を保存しました');
+  showToast('✓ 開始レジ金を保存しました');
 }
 function finalSave(){
   db.final={};
   den.forEach(d=>db.final[d]=Math.max(0,Number(document.getElementById('f'+d).value)||0));
   save();
   cash();
-  alert('終了精算を保存しました');
+  showToast('✓ 終了精算を保存しました');
 }
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js'); renderEventTitle(); reg();
 </script></body></html>
