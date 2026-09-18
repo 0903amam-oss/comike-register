@@ -1,4 +1,4 @@
-const CACHE = "comike-register-v29";
+const CACHE = "comike-register-v30";
 const ASSETS = ["./", "./index.html", "./manifest.json"];
 
 self.addEventListener("install", event => {
